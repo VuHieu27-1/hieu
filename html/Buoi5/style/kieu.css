@@ -1,0 +1,184 @@
+body{
+    font-family: 'Anton', sans-serif;
+    background-color: #0C0C0C;
+    margin: 0;
+}
+#main{
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+#menu, #nava, #icon{
+    display: inline-block;
+}
+#icon i{
+    color: rgb(248, 248, 248);
+}
+#icon i:hover
+{
+    color: rgb(153, 209, 139);
+}
+#icon img{
+    border-radius: 50%;
+    margin: 10px 0px 0px 30px;
+    width:30px;
+    height:30px;
+}
+#menu{
+    width: 80%;
+    margin: auto;
+    text-align: center;
+}
+#main a{
+    margin: 0px 20px 0px 20px;
+    color: white;
+    text-decoration: none;
+    transition: 0.3s;
+}
+#main #menu #search
+{
+    display: none;
+}
+#main a:hover{
+    background-color: aqua;
+    margin: 0px 20px 10px 20px;
+    padding: 5px 5px 5px 5px;
+    border-radius: 50px;
+    transition: 0.3s;
+}
+
+@media (max-width: 700px) {
+    #main #menu, #main #nava{
+        text-align: center;
+        display: block;           
+        width: 100%;
+    }
+    #main a{
+        display: block;
+        margin: 5px 0;
+    }
+    #icon{
+        display: none;
+    }
+    #main #menu #search
+    {
+        display: block;
+    }
+}
+@media (max-width: 950px) {
+    #menu{
+        width: 70%;
+        margin: auto;
+        text-align: center;
+    }
+}
+#noidung
+{
+    color: white;
+    margin: 60px 0px 10px 0px;
+    padding: 100px 0px 170px 0px;
+    background-image: url(../img/318.jpg);
+    background-size: 100%;
+    background-size: cover;  
+    text-align: center;
+}
+@media (max-width: 700px) {
+    #noidung
+    {
+        color: white;
+        margin-top: 100px;
+        background-image: url(../img/318.jpg); 
+        height: 100%;
+        width: 100%;
+        background-size: cover;  
+        text-align: center;
+    }
+}
+#noidung h1{
+    font-size: 100px;
+}
+#noidung p{
+    font-size: 50px;
+}
+#danhsach{
+    background-image: url(../img/wallpapersden.com_spooky-minimal-deadpool_1920x1080.jpg);
+    background-size: cover;
+    background-size: 100%;
+}
+#danhsach h2{
+    padding: 30px 10px 10px 10px ;
+    color: white;
+    text-align: center;
+}
+#danhsach #list{
+    margin: 0px 40px 0px 40px;
+}
+#danhsach #list div{
+    width: 25%;
+    border: 2px solid white;
+    border-radius: 5%;
+    display: inline-block;
+    text-align: center;
+    margin: 10px 30px 10px 20px;
+    background-color: white;
+    transition: 0.3s;
+}
+#danhsach #list h2{
+    color: #000;
+}
+.phim img{
+    border: 3px solid rgb(218, 54, 54);
+    border-radius: 5%;
+    width: 90%;
+    transition: 0.3s;
+}
+#danhsach #list .phim:hover{
+    background-color: rgb(240, 152, 152);
+    transition: 0.3s;
+}
+#danhsach #list .phim img:hover{
+    transform: scale(1.2);
+    transition: 0.3s;
+}
+@media (max-width: 700px) {
+    #danhsach #list div{
+        display: block;
+        width: 50%;
+    }
+}
+@media (max-width: 800px) {
+    #danhsach #list div{
+        display: inline-block;
+        width: 40%;
+    }
+}
+#danhsach #lichphim hr{
+    margin-top: 30px;
+    margin-bottom: 5px;
+    width: 20%;
+}
+#danhsach #lichphim{
+    color: white;
+    text-align: center;
+}
+#danhsach #lichphim li{
+    margin: 10px 10px 10px 10px ;
+    transition: 0.3s;
+}
+#danhsach #lichphim li:hover{
+    margin: 10px 0px 10px 40px;
+    transition: 0.3s;
+    color: rgb(43, 6, 5);
+}
+#danhsach #danhgia{
+    color: white;
+    transition: 0.3s;
+}
+#danhsach #danhgia li{
+    width: 50%;
+}
+#danhsach #danhgia #listdanhgia li:hover{
+    margin: 0px 0px 0px 40px;
+    color: rgb(65, 18, 18);
+    transition: 0.3s;
+}

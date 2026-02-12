@@ -1,0 +1,88 @@
+#menu
+{
+    background-color: black;
+    height: 60px;
+}
+a{
+    color: white;
+    border: 1px solid white;
+    margin: 5px 10px 10px 10px;
+    padding: 5px 10px 10px 10px;
+    text-decoration: none;
+
+}
+a:hover{
+    color: yellow;
+    text-decoration: none;
+}
+h1{
+    text-align: center;
+    border: 3px solid blue;
+    padding : 10px 20px 10px 20px;
+    width: 60%;
+    margin: auto;
+    margin-top: 20px;
+}
+#sothich p{
+    border: 1.5px solid green;
+    padding: 5px 0px 5px 5px;
+    margin: 5px 0px 0px 30px;
+}
+#sothich p:hover{
+    background-color: rgb(159, 241, 159);
+    color: white;
+    transition: 0.3s;
+}
+#muctieu li{
+    border: 1.5px dashed rgb(192, 28, 28);
+    padding: 5px 0px 5px 5px;
+    margin: 5px 0px 0px 0px;
+}
+#muctieu li:hover{  
+    margin: 5px 0px 0px 20px;
+    background-color: rgb(235, 193, 193);
+    transition: 0.3s;
+}
+#baitho{
+    border: 2px dashed rgb(190, 190, 42);
+    padding: 3px 20px 3px 20px;
+    width: 60%;
+    margin: auto;
+    background-color: azure;
+}
+#baitho h2{
+    color: rgb(224, 224, 110);
+}
+#baitho p, #baitho h2{
+
+    text-align: center;
+}
+#baitho:hover{
+    background-color: rgb(245, 245, 245);
+    transition: 0.3s;
+}
+#anhdaidien{
+    text-align: center;
+    margin: auto;
+}
+#anhdaidien img{
+    width: 100px;
+    height: 100px;
+    border: 5px solid purple;
+    margin: 10px 0px 10px 0px;
+    transition: 0.5s;
+}
+#anhdaidien .anh1:hover{
+    border-radius: 50%;
+    transition: 0.5s;
+}
+#anhdaidien .anh2:hover{
+    width: 200px;
+    height: 100px;
+}
+#anhdaidien .anh3:hover{
+    height: 200px;
+}
+#anhdaidien .anh4:hover{
+    width: 200px;
+}
