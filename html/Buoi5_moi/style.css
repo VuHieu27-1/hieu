@@ -165,5 +165,16 @@ body {
     background-color: aqua;
 }
 #gioithieu{
-    margin: 0;
+    font-size: 30px;
+    background-image: url(./img/1313035.jpg);
+    background-size: cover;
+    height: 100vh;                  
+    text-align: center;
+    margin-top: 130px;
+    color: #f5f5f5;
+    text-shadow: 0 0 10px rgba(255,255,255,0.6);
 }
+#gioithieu h1{
+    padding: 170px 0px 50px 0px;
+}
+
