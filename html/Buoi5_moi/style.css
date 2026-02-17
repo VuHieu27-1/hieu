@@ -1,0 +1,125 @@
+@font-face {
+    font-family: 'fontHiu';
+    src: url('./MTD Valky Regular.otf');
+}
+body {
+    font-family: 'fontHiu', sans-serif;
+    margin: 0;
+}
+#menu{
+    background-image: url(./img/1313026.jpg);
+    background-size: 100%;
+    width: 100%;
+    top: 0;
+    position: fixed;
+}
+#menu #theloai{
+    color: white;
+    text-shadow: 
+    0 2px 5px rgba(0,0,0,0.9),
+    0 5px 15px rgba(0,0,0,0.8),
+    0 10px 30px rgba(0,0,0,0.7);
+    display: inline-block;
+}
+#menu #theloai ul{
+    display: none;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.6);
+    font-size: 20px;
+    padding: 15px 20px 15px 20px;
+    position: absolute;
+    border-radius: 10%;
+    left: 180px;
+    top: 70px
+}
+#menu #theloai:hover ul
+{
+    display: block;
+}
+#menu #theloai li
+{
+    border-radius: 10px;
+    margin: 0;
+    padding: 5px 10px 10px 10px;
+}
+#menu #theloai li:hover
+{
+    margin: 0;
+    padding: 5px 10px 10px 10px;
+    background-color: aqua;
+}
+#menu a{
+    font-size: 20px;
+    color: rgb(34, 14, 51);
+    color: white;
+    text-shadow: 
+    0 2px 5px rgba(0,0,0,0.9),
+    0 5px 15px rgba(0,0,0,0.8),
+    0 10px 30px rgba(0,0,0,0.7);
+    display: inline-block;
+    text-decoration: none;
+    margin: 0px 20px 0px 20px;
+}
+#menu a:hover{
+    text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
+}
+#menu #search
+{
+    display: none;
+}
+#menu #hoso
+{
+    position: fixed;
+    right: 2%;
+    top: 10px;
+}
+#menu i{
+    font-size: 40px;
+    color: white;
+    text-shadow: 
+    0 2px 5px rgba(0,0,0,0.9),
+    0 5px 15px rgba(0,0,0,0.8),
+    0 10px 30px rgba(0,0,0,0.7);
+}
+#menu i:hover{
+    color: rgb(34, 199, 199);
+    border: 2px solid white;
+    background-color: aliceblue;
+    border-radius: 20px;
+    padding: 0px 0px 0px 200px;
+}
+#menu img {
+    font-size: 10px;
+    margin: 0px 0px 0px 30px;
+    height: 70px;
+    width: 70px;
+    border: 4px solid black;
+    border-radius: 50%;
+}
+@media (max-width: 740px) {
+    #menu h1{
+        font-size: 18px;
+        margin: 10px 0px 0px 0px;
+    }
+    #menu a{
+        margin: 10px 0px 0px 10px;
+        left : 0;
+        display: block;
+    }
+    #menu #hoso
+    {
+        display: none;
+    }
+    #menu #search{
+        display: block;
+    }
+    #menu #theloai:hover ul
+    {
+        left: 60px;
+        top: 40px;
+        display: block;
+    }
+}
+#gioithieu{
+    margin: 0;
+}
