@@ -8,7 +8,7 @@ body {
 }
 #menu{
     background-image: url(./img/1313026.jpg);
-    background-size: 100%;
+    background-size: cover;
     width: 100%;
     top: 0;
     position: fixed;
@@ -176,5 +176,10 @@ body {
 }
 #gioithieu h1{
     padding: 170px 0px 50px 0px;
+}
+@media (max-width: 200px) {
+    #gioithieu{
+        font-size: 10px;
+    }
 }
 
