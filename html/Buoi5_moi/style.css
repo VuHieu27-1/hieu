@@ -72,6 +72,7 @@ body {
     position: fixed;
     right: 2%;
     top: 10px;
+    bottom: 0;
 }
 #menu i{
     font-size: 40px;
@@ -96,19 +97,26 @@ body {
     border: 4px solid black;
     border-radius: 50%;
 }
+
 @media (max-width: 740px) {
     #menu h1{
         font-size: 18px;
         margin: 10px 0px 0px 0px;
     }
     #menu a{
+        width: 50%;
         margin: 10px 0px 0px 10px;
         left : 0;
         display: block;
     }
-    #menu #hoso
+    #menu #hoso i
     {
         display: none;
+    }
+    #menu #hoso img{
+        height: 40px;
+        width: 40px;
+        display: block;
     }
     #menu #search{
         display: block;
@@ -119,6 +127,34 @@ body {
         top: 40px;
         display: block;
     }
+}
+#hoso ul{
+    display: none;
+    border-radius: 5%;
+    margin-top: 10px;
+    padding: 10px 10px 5px 5px;
+    background: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    right: 3px;
+}
+#hoso li{
+    border-radius: 10px;
+    padding: 5px 5px 5px 5px;
+    margin: 10px 0px 10px 10px;
+    color: white;
+    text-shadow: 
+    0 2px 5px rgba(0,0,0,0.9),
+    0 5px 15px rgba(0,0,0,0.8),
+    0 10px 30px rgba(0,0,0,0.7);
+}
+#hoso:hover ul
+{
+    display: block;
+}
+#hoso li:hover
+{
+    color: black;
+    background-color: aqua;
 }
 #gioithieu{
     margin: 0;
