@@ -29,8 +29,8 @@ body {
     padding: 15px 20px 15px 20px;
     position: absolute;
     border-radius: 10%;
-    left: 180px;
-    top: 70px
+    left: 220px;
+    top: 90px
 }
 #menu #theloai:hover ul
 {
@@ -49,7 +49,7 @@ body {
     background-color: aqua;
 }
 #menu a{
-    font-size: 20px;
+    font-size: 25px;
     color: rgb(34, 14, 51);
     color: white;
     text-shadow: 
@@ -71,10 +71,13 @@ body {
 {
     position: fixed;
     right: 2%;
-    top: 10px;
+    top: 20px;
     bottom: 0;
 }
 #menu i{
+    position: fixed;
+    top: 40px;
+    right: 150px;
     font-size: 40px;
     color: white;
     text-shadow: 
@@ -98,7 +101,7 @@ body {
     border-radius: 50%;
 }
 
-@media (max-width: 740px) {
+@media (max-width: 800px) {
     #menu h1{
         font-size: 18px;
         margin: 10px 0px 0px 0px;
@@ -109,13 +112,13 @@ body {
         left : 0;
         display: block;
     }
-    #menu #hoso i
+    #menu i
     {
         display: none;
     }
     #menu #hoso img{
-        height: 40px;
-        width: 40px;
+        height: 50px;
+        width: 50px;
         display: block;
     }
     #menu #search{
@@ -126,6 +129,11 @@ body {
         left: 60px;
         top: 40px;
         display: block;
+    }
+}
+@media (min-width: 3000px) {
+    #menu i{
+        right: 250px;
     }
 }
 #hoso ul{
