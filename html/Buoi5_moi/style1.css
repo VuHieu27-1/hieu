@@ -1,0 +1,91 @@
+body{
+    background-image: url(./img/1313025.jpg);
+    background-size: cover;
+}
+#typephim1{
+    margin-top: 100px;
+    text-align: center;
+    padding: 30px 0px 50px 0px;
+}
+#typephim1 h1{
+    font-size: 50px;
+    color: white;
+    text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
+}
+#phim2{
+    font-size: 30px;
+    color: white;
+    width: 150vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(0, 180, 255, 0.5);
+    display: inline-block;
+}
+#mota1{
+    color: white;
+    text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
+}
+#mota1 h1{
+    font-size: 50px;
+    text-align: center;
+}
+hr{
+    width: 30%;
+}
+#mota1 #mota2{
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+}
+#mota1 #mota2 li
+{
+    height: 30px;
+    width: 820px;
+}
+#mota1 #mota2 li:hover{
+    opacity: 1; 
+    color: rgb(120, 233, 248);
+    text-shadow: 
+    0px 2px 5px rgba(0, 0, 0, 0.7),
+    0px 5px 15px rgba(0, 0, 0, 0.8),
+    0px 10px 30px rgba(0, 0, 0, 0.9);
+    width: 800px;
+    padding: 0px 0px 0px 20px;
+}
+#khuyenkhich .phim1{
+    position: relative;
+    font-size: 15px;
+    text-align: center;
+    color: black;
+    background-color: #f5f5f5;
+    border-radius: 10px;
+    border: 1px solid black;
+    display: inline-block;
+    width: 500px;
+    height: 350px;
+    margin: 20px 30px 20px 30px;
+    margin-left: 2%;
+    transition: 0.5s;
+}
+#khuyenkhich h1 {
+    text-align: center;
+    font-size: 50px;
+    padding: 30px 10px 10px 10px;
+    color: white;
+    text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
+}
+#khuyenkhich img{
+    border: 3px solid white;
+    border-radius: 5px;
+    width: 90%;
+    height: 60%;
+    transition: 0.3s;
+}
+@media (max-width: 1800px) {
+    #khuyenkhich{
+        text-align: center;
+    }
+}
+#khuyenkhich img:hover{
+    transform: scale(1.2);
+    transition: 0.3s;
+}
