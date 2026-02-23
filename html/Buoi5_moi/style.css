@@ -285,6 +285,9 @@ body {
 #cach hr{
     width: 50%;
 }
+#typephim #lich #banglich ol{
+    width: min(700px,90%);
+}
 #typephim #lich #banglich li{
     width: min(600px,90%);
     margin: 10px 0px 10px 0px;
