@@ -39,7 +39,7 @@ hr{
 #mota1 #mota2 li
 {
     height: 30px;
-    width: 820px;
+    width: min(820px,90%);
 }
 #mota1 #mota2 li:hover{
     opacity: 1; 
@@ -48,7 +48,7 @@ hr{
     0px 2px 5px rgba(0, 0, 0, 0.7),
     0px 5px 15px rgba(0, 0, 0, 0.8),
     0px 10px 30px rgba(0, 0, 0, 0.9);
-    width: 800px;
+    width: min(800px,80%);
     padding: 0px 0px 0px 20px;
 }
 #khuyenkhich .phim1{
@@ -60,7 +60,7 @@ hr{
     border-radius: 10px;
     border: 1px solid black;
     display: inline-block;
-    width: 500px;
+    width: 400px;
     height: 350px;
     margin: 20px 30px 20px 30px;
     margin-left: 2%;
@@ -99,4 +99,20 @@ hr{
     border: 1px solid rgba(0, 180, 255, 0.4);
     box-shadow: 0 0 10px rgba(0, 180, 255, 0.5);
     transition: 0.5s;
+}
+@media (max-width: 800px) {
+    #typephim1{
+        margin-top: 300px;
+    }
+    #khuyenkhich .phim1{
+        width: 60%;
+    }
+    #mota1 #mota2 li{
+        margin-bottom: 50px;
+        margin-top: 50px;
+        font-size: 20px;
+    }
+    #phim2{
+        width: 60%;
+    }
 }
