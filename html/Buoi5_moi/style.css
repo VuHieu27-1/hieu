@@ -240,10 +240,6 @@ body {
     #typephim .phim h4{
         font-size: 60%;
     }
-    #typephim #chuy #testdanhgia{
-        top: 250px;
-        position: sticky;
-    }
 }
 @media (max-width: 1800px) {
     #typephim{
@@ -335,8 +331,16 @@ body {
     font-size: 30px;
     border: 3px solid rgba(34, 3, 34, 0.4);
     background-color: rgb(133, 133, 233, 0.5);
+}
+#typephim #chuy #testdanhgia{
     top: 110px;
     position: sticky;
+}
+@media (max-width: 600px) {
+    #typephim #chuy #testdanhgia{
+        top: 250px;
+        position: sticky;
+    }
 }
 #typephim  #chuy ol{
     margin: 0;
