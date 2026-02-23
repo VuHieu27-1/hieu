@@ -238,10 +238,24 @@ body {
         text-align: center;
     }
     #typephim .phim{
-        margin: 20px 150px 20px 150px;
+        margin: 20px 40px 20px 40px;
     }
     #typephim #lich{
         text-align: left;
+    }
+}
+@media (max-width: 800px) {
+    #menu{
+        height: 250px;
+    }
+    #typephim{
+        width: 1000px;
+    }
+    #gioithieu{
+        width: 1000px;
+    }
+    #footer{
+        width: 1000px;
     }
 }
 #typephim .phim:hover{
