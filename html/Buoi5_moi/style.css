@@ -296,7 +296,7 @@ body {
     0px 2px 5px rgba(0, 0, 0, 0.7),
     0px 5px 15px rgba(0, 0, 0, 0.8),
     0px 10px 30px rgba(0, 0, 0, 0.9);
-    width: 580px;
+    width: min(580px,90%);
     padding: 0px 0px 0px 20px;
 }
 #typephim #danhgia li{
@@ -355,7 +355,7 @@ body {
     0px 2px 5px rgba(0, 0, 0, 0.7),
     0px 5px 15px rgba(0, 0, 0, 0.8),
     0px 10px 30px rgba(0, 0, 0, 0.9);
-    width: 580px;
+    width: min(580px,90%);
     padding: 10px 0px 10px 20px;
 }
 #footer{
