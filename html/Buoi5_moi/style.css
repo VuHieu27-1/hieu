@@ -210,9 +210,9 @@ body {
     border-radius: 10px;
     border: 1px solid black;
     display: inline-block;
-    width: min(400px, 90%);
+    width: min(350px, 90%);
     height: auto;
-    margin: 20px 20px 20px 20px;
+    margin: 20px 30px 20px 30px;
     /* margin-left: 2%; */
     padding: 0px 20px 0px 20px;
     transition: 0.5s;
