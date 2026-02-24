@@ -74,7 +74,7 @@ body {
     position: fixed;
     right: 2%;
     top: 15px;
-    bottom: 90%;
+    bottom: 80%;
 }
 #menu i{
     position: fixed;
@@ -104,6 +104,39 @@ body {
 }
 
 @media (max-width: 800px) {
+    #menu{
+        height: 250px;
+    }
+    #menu h1{
+        font-size: 18px;
+        margin: 10px 0px 0px 0px;
+    }
+    #menu a{
+        width: 50%;
+        margin: 5px 0px 5px 10px;
+        left : 0;
+        display: block;
+    }
+    #menu i
+    {
+        display: none;
+    }
+    #menu #hoso img{
+        height: 50px;
+        width: 50px;
+        display: block;
+    }
+    #menu #search{
+        display: block;
+    }
+    #menu #theloai:hover ul
+    {
+        left: 60px;
+        top: 40px;
+        display: block;
+    }
+}
+@media (max-height: 450px) {
     #menu{
         height: 250px;
     }
@@ -212,7 +245,7 @@ body {
     display: inline-block;
     width: min(350px, 90%);
     height: auto;
-    margin: 20px 30px 20px 30px;
+    margin: 20px 25px 20px 25px;
     /* margin-left: 2%; */
     padding: 0px 20px 0px 20px;
     transition: 0.5s;
