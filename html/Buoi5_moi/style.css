@@ -212,7 +212,7 @@ body {
     display: inline-block;
     width: min(400px, 90%);
     height: auto;
-    margin: 20px 30px 20px 30px;
+    margin: 20px 20px 20px 20px;
     /* margin-left: 2%; */
     padding: 0px 20px 0px 20px;
     transition: 0.5s;
