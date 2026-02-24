@@ -60,10 +60,9 @@ hr{
     border-radius: 10px;
     border: 1px solid black;
     display: inline-block;
-    width: 400px;
+    width: min(300px, 90%);
     height: 350px;
     margin: 20px 30px 20px 30px;
-    margin-left: 2%;
     transition: 0.5s;
 }
 #khuyenkhich h1 {
