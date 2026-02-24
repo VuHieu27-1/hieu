@@ -241,7 +241,7 @@ body {
         font-size: 60%;
     }
 }
-@media (max-width: 1800px) {
+@media (max-width: 1500px) {
     #typephim{
         text-align: center;
     }
