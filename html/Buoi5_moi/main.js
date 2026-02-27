@@ -4,7 +4,12 @@ let hientheloai = document.querySelector("#slidemenu #theloai");
 function clickmenu(){
     menubar.classList.toggle("hienthislide");
     overload.classList.toggle("hienthioverload");
+    hientheloai.classList.remove("hientype");
 }
 function clicktheloai(){
-    hientheloai.classList.toggle("hientype");
+    if(!hientheloai.classList.contains("hientype")){
+        hientheloai.classList.add("hientype");
+    }else{
+        hientheloai.classList.remove("hientype");
+    }
 }
