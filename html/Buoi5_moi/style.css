@@ -465,12 +465,12 @@ body {
     background-color: rgb(133, 133, 233, 0.5);
 }
 #typephim #chuy #testdanhgia{
-    top: 110px;
+    top: 150px;
     position: sticky;
 }
-@media (max-width: 600px) {
+@media (max-width: 990px) {
     #typephim #chuy #testdanhgia{
-        top: 250px;
+        top: 80px;
         position: sticky;
     }
 }
