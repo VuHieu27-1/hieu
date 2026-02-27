@@ -29,6 +29,7 @@ body {
     position: fixed;
     display: none;
     z-index: 9999;
+    transition: 0.5s ease-in-out;
 }
 #overload{
     position: fixed;
@@ -84,10 +85,12 @@ body {
     border-radius: 10%;
     left: 70px;
     top: 75px;
+    transition: 0.3s;
 }
 #slidemenu #theloai.hientype ul
 {
     display: block;
+    transition: 0.3s;
 }
 #slidemenu #theloai li
 {
@@ -253,9 +256,11 @@ body {
     }
     #slidemenu.hienthislide{
         transform: translateX(0);
+        transition: 0.5s ease-in-out;
     }
     #overload.hienthioverload{
         display: block;
+        transition: 0.5s ease;
     }
 } 
 @media (min-width: 3000px) {
