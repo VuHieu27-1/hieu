@@ -24,15 +24,37 @@
         <a href="#lich"><b>Showtimes</b></a>
         <a href="#danhgia"><b>Reviews</b></a>
         <a href="" id="search"><b>Search</b></a>
-        <i class="material-icons">search</i>
+        <i class="material-icons" id="searchicon">search</i>
+        <i class="material-icons" id="menuicon" onclick="clickmenu()">menu</i>
         <div id="hoso">
-            <img src="./img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
+            <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
             <ul type="none">
                 <li>User</li>
                 <li>Setting</li>
                 <li>Exit</li>
             </ul>
         </div>
+    </div>
+    <div id="slidemenu">
+        <a href="./index.html" id="home"><b>MOVIES</b></a>
+        <div id="theloai">
+            <a href=""><b>Type</b></a>
+            <ul type="none">
+                <b><li>Action</li>
+                <li>Adventure</li>
+                <li>Animation</li>
+                <li>Comedy</li>
+                <li>Crime</li></b>
+            </ul>
+        </div>
+        <a href="#typephim"><b>Schedule</b></a>
+        <a href="#lich"><b>Showtimes</b></a>
+        <a href="#danhgia"><b>Reviews</b></a>
+        <a href="" id="search"><b>Search</b></a>
+        <i class="material-icons" id="closemenu" onclick="clickmenu()">close</i>
+    </div>
+    <div id="overload" onclick="clickmenu()">
+        <!-- Nội dung của trang web sẽ được đặt ở đây -->
     </div>
     <div id="gioithieu">
         <h1>IT'S TIME TO DUEL</h1>
@@ -42,37 +64,37 @@
         <h2>Movie List</h2>
         <div id= "phim1" class="phim">
             <h3>Blue-Eyes</h3>
-            <a href="./videophim.html"><img src="./img/vhieu.jpg" alt=""></a>
-            <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
-            <h4><b>New video</b></h4>
-        </div>
-        <div id= "phim2" class="phim">
-            <h3>Blue-Eyes</h3>
-            <a href="./videophim.html"><img src="./img/vhieu.jpg" alt=""></a>
+            <a href="./videophim.html"><img src="./asset/img/vhieu.jpg" alt=""></a>
             <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
             <h4><b>New video</b></h4>
         </div>
         <div id= "phim1" class="phim">
             <h3>Blue-Eyes</h3>
-            <a href="./videophim.html"><img src="./img/vhieu.jpg" alt=""></a>
+            <a href="./videophim.html"><img src="./asset/img/vhieu.jpg" alt=""></a>
             <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
             <h4><b>New video</b></h4>
         </div>
         <div id= "phim1" class="phim">
             <h3>Blue-Eyes</h3>
-            <a href="./videophim.html"><img src="./img/vhieu.jpg" alt=""></a>
+            <a href="./videophim.html"><img src="./asset/img/vhieu.jpg" alt=""></a>
             <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
             <h4><b>New video</b></h4>
         </div>
         <div id= "phim1" class="phim">
             <h3>Blue-Eyes</h3>
-            <a href="./videophim.html"><img src="./img/vhieu.jpg" alt=""></a>
+            <a href="./videophim.html"><img src="./asset/img/vhieu.jpg" alt=""></a>
+            <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
+            <h4><b>New video</b></h4>
+        </div>
+        <div id= "phim1" class="phim">
+            <h3>Blue-Eyes</h3>
+            <a href="./videophim.html"><img src="./asset/img/vhieu.jpg" alt=""></a>
             <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
             <h4><b>New video</b></h4>    
         </div>
         <div id= "phim1" class="phim">
             <h3>Blue-Eyes</h3>
-            <a href="./videophim.html"><img src="./img/vhieu.jpg" alt=""></a>
+            <a href="./videophim.html"><img src="./asset/img/vhieu.jpg" alt=""></a>
             <p>Yu-Gi-Oh! là thế giới nơi chiến thuật, niềm tin và sức mạnh của những lá bài hòa làm một. Mỗi trận đấu không chỉ là cuộc so tài, mà còn là thử thách của ý chí và bản lĩnh. Khi những quái vật hùng mạnh được triệu hồi và phép thuật bùng nổ trên chiến trường, chỉ người thực sự tin vào bộ bài của mình mới có thể giành chiến thắng.</p>
             <h4><b>New video</b></h4>
         </div>
@@ -191,11 +213,12 @@
             <p>Contact the Duel Arena: hieulaptop@gmail.com | 0123-456-789</p></b>
         </div>
         <div id="footerthongtin">
-            <img src="./img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
-            <a href="https://www.facebook.com/KanakiYuya"><p>Facebook</p></a>
+            <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
+            <a href="https://www.facebook.com/KanakiYuya" target="_blank"><p>Facebook</p></a>
             <a href="https://discord.com/users/hiu2708"><p>Discord</p></a>
             <a href="https://x.com/Yuya61851413"><p>Twitter</p></a>
         </div>
     </div>
+    <script src="./main.js"></script>
 </body>
 </html>
