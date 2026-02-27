@@ -25,7 +25,7 @@
         <a href="#danhgia"><b>Reviews</b></a>
         <a href="" id="search"><b>Search</b></a>
         <i class="material-icons" id="searchicon">search</i>
-        <i class="material-icons" id="menuicon" onclick="clickmenu()">menu</i>
+        <i class="material-icons" id="menuicon" onclick="clickmenu(); clicktheloai()">menu</i>
         <div id="hoso">
             <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
             <ul type="none">
@@ -37,8 +37,8 @@
     </div>
     <div id="slidemenu">
         <a href="./index.html" id="home"><b>MOVIES</b></a>
-        <div id="theloai">
-            <a href=""><b>Type</b></a>
+        <div id="theloai" onclick="clicktheloai()">
+            <b>Type</b>
             <ul type="none">
                 <b><li>Action</li>
                 <li>Adventure</li>
@@ -51,7 +51,7 @@
         <a href="#lich"><b>Showtimes</b></a>
         <a href="#danhgia"><b>Reviews</b></a>
         <a href="" id="search"><b>Search</b></a>
-        <i class="material-icons" id="closemenu" onclick="clickmenu()">close</i>
+        <i class="material-icons" id="closemenu" onclick="clickmenu(); clicktheloai()">close</i>
     </div>
     <div id="overload" onclick="clickmenu()">
         <!-- Nội dung của trang web sẽ được đặt ở đây -->

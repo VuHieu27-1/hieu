@@ -52,7 +52,7 @@ body {
 {
     text-shadow: 0 0 20px rgba(245, 245, 245, 0.5);
 }
-#slidemenu a{
+#slidemenu a, #slidemenu #theloai b{
     font-size: 25px;
     color: white;
     text-shadow: 
@@ -62,7 +62,7 @@ body {
     display: block;
     text-decoration: none;
 }
-#slidemenu a:hover{
+#slidemenu a:hover, #slidemenu #theloai b:hover{
     text-shadow: 0 0 20px rgba(245, 245, 245, 0.5);
 }
 #slidemenu #theloai{
@@ -85,7 +85,7 @@ body {
     left: 70px;
     top: 75px;
 }
-#slidemenu #theloai:hover ul
+#slidemenu #theloai.hientype ul
 {
     display: block;
 }
@@ -244,10 +244,10 @@ body {
         width: 130px;
     }
     #slidemenu{
-        transform: translateX(-100%);
+        transform: translateX(-200%);
         display: block;
     }
-    #slidemenu a{
+    #slidemenu a, #slidemenu #theloai b{
         padding: 10px 0px 0px 0px;
         margin: 5px 0px 5px 10px;
     }
