@@ -71,14 +71,15 @@ body.dark{
     z-index: 99;
 }
 .light2{
-    background-image: url(./asset/img/1313026.jpg);
-    background-size: cover;
+    background: 
+    linear-gradient(rgba(0, 0, 0, 0.4)),
+    url(./asset/img/1313026.jpg) top/cover;
     transition: 0.3s;
 }
 .dark2{
-    background-image: url(./asset/img/1266336.jpg);
-    background-size: cover;
-    background-position: center;
+    background: 
+    linear-gradient(rgba(255, 255, 255, 0.4)),
+    url(./asset/img/1266336.jpg) center/cover;
     transition: 0.3s;
 }
 #slidemenu{
