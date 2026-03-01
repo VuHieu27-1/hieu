@@ -394,6 +394,7 @@ body.dark{
          rgba(192, 33, 33, 0.5) 20%,
          transparent 60%
     ),
+    linear-gradient(rgba(0, 0, 0, 0.5)),
     url("./asset/img/1313035.jpg") center/cover;
     transition: 0.5s ease;
 }
@@ -403,6 +404,7 @@ body.dark{
         transparent 50%,
         rgba(0,0,0,0.9) 100%
     ),
+    linear-gradient(rgba(255, 255, 255, 0.3)),
     url(./asset/img/1271354.png) center/cover;
     transition: 0.5s ease;
 }
