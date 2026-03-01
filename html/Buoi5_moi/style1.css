@@ -1,28 +1,27 @@
 body{
-    background-image: url(./asset/img/1313025.jpg);
     background-size: cover;
 }
 #typephim1{
-    margin-top: 100px;
     text-align: center;
     padding: 30px 0px 50px 0px;
 }
 #typephim1 h1{
+    padding-top: 100px;
     font-size: 50px;
-    color: white;
+    color: var(--maucuachung);
     text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
 }
 #phim2{
     font-size: 30px;
-    color: white;
+    color: var(--maucuachung);
     width: 150vh;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--backgroundphim2);
     box-shadow: 0 0 15px rgba(0, 180, 255, 0.5);
     display: inline-block;
 }
 #mota1{
-    color: white;
-    text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
+    color: var(--maucuachung);
+    text-shadow: var(--hieuungsang);
 }
 #mota1 h1{
     font-size: 50px;
@@ -36,10 +35,13 @@ hr{
     display: flex;
     justify-content: center;
 }
+#mota1 #mota2 ol{
+    width: 800px;
+}
 #mota1 #mota2 li
 {
     height: 30px;
-    width: min(820px,90%);
+    width: min(920px,90%);
 }
 #mota1 #mota2 li:hover{
     opacity: 1; 
@@ -48,7 +50,7 @@ hr{
     0px 2px 5px rgba(0, 0, 0, 0.7),
     0px 5px 15px rgba(0, 0, 0, 0.8),
     0px 10px 30px rgba(0, 0, 0, 0.9);
-    width: min(800px,80%);
+    width: min(900px,80%);
     padding: 0px 0px 0px 20px;
 }
 #khuyenkhich .phim1{
@@ -69,8 +71,7 @@ hr{
     text-align: center;
     font-size: 50px;
     padding: 30px 10px 10px 10px;
-    color: white;
-    text-shadow: 0 0 40px rgba(245, 245, 245, 0.9);
+    color: var(--maucuachung);
 }
 #khuyenkhich img{
     border: 3px solid white;
@@ -100,8 +101,8 @@ hr{
     transition: 0.5s;
 }
 @media (max-width: 800px) {
-    #typephim1{
-        margin-top: 300px;
+    #typephim1 h1{
+        padding-top: 100px;
     }
     #khuyenkhich .phim1{
         width: 60%;

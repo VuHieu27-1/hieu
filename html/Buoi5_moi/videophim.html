@@ -21,19 +21,45 @@
                 <li>Crime</li></b>
             </ul>
         </div>
-        <a href="./index.html#typephim"><b>Schedule</b></a>
-        <a href="./index.html#lich"><b>Showtimes</b></a>
-        <a href="./index.html#danhgia"><b>Reviews</b></a>
+        <a href="#typephim"><b>Schedule</b></a>
+        <a href="#lich"><b>Showtimes</b></a>
+        <a href="#danhgia"><b>Reviews</b></a>
         <a href="" id="search"><b>Search</b></a>
-        <i class="material-icons">search</i>
+        <i class="material-icons" id="searchicon">search</i>
+        <i class="material-icons" id="menuicon" onclick="clickmenu()">menu</i>
         <div id="hoso">
-            <img src="./img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
+            <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
             <ul type="none">
                 <li>User</li>
                 <li>Setting</li>
                 <li>Exit</li>
             </ul>
         </div>
+    </div>
+    <div id="classiconmode">
+        <i class="material-icons" id="nightmodeicon" onclick="clickdualmode()">mode_night</i>
+        <i class="material-icons" id="lightmodeicon" onclick="clickdualmode()">sunny</i>
+    </div>
+    <div id="slidemenu">
+        <a href="./index.html" id="home"><b>MOVIES</b></a>
+        <div id="theloai" onclick="clicktheloai()">
+            <b>Type</b>
+            <ul type="none">
+                <b><li>Action</li>
+                <li>Adventure</li>
+                <li>Animation</li>
+                <li>Comedy</li>
+                <li>Crime</li></b>
+            </ul>
+        </div>
+        <a href="#typephim"><b>Schedule</b></a>
+        <a href="#lich"><b>Showtimes</b></a>
+        <a href="#danhgia"><b>Reviews</b></a>
+        <a href="" id="search"><b>Search</b></a>
+        <i class="material-icons" id="closemenu" onclick="clickmenu()">close</i>
+    </div>
+    <div id="overload" onclick="clickmenu()"></div>
+        <!-- Nội dung của trang web sẽ được đặt ở đây -->
     </div>
     <div id="typephim1">
         <h1><b>Start Movie</b></h1>
@@ -63,17 +89,17 @@
         <h1><b>Recommended</b></h1>
         <div class="phim1">
             <h3>Blue-Eyes</h3>
-            <img src="./img/vhieu.jpg" alt="">
+            <img src="./asset/img/vhieu.jpg" alt="">
             <p>Yugi and Kaiba face destiny in an epic duel.</p>
         </div>
         <div class="phim1">
             <h3>Odin</h3>
-            <img src="./img/1312706.jpg" alt="">
+            <img src="./asset/img/1312706.jpg" alt="">
             <p>Yugi and Kaiba face destiny in an epic duel beyond time.</p>
         </div>
         <div class="phim1">
             <h3>Dark-Magician</h3>
-            <img src="./img/1371358.jpg" alt="">
+            <img src="./asset/img/1371358.jpg" alt="">
             <p>An intense battle of cards where friendship and destiny collide.</p>
         </div>
     </div>
@@ -85,11 +111,12 @@
             <p>Contact the Duel Arena: hieulaptop@gmail.com | 0123-456-789</p></b>
         </div>
         <div id="footerthongtin">
-            <img src="./img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
+            <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
             <a href="https://www.facebook.com/KanakiYuya"><p>Facebook</p></a>
             <a href="https://discord.com/users/hiu2708"><p>Discord</p></a>
             <a href="https://x.com/Yuya61851413"><p>Twitter</p></a>
         </div>
     </div>
+    <script src="./main.js"></script>
 </body>
 </html>
