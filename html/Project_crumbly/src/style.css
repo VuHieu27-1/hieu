@@ -1,0 +1,109 @@
+@font-face{
+    font-family: "DancingScript";
+    src: url(../asset/font/DancingScript-VariableFont_wght.ttf), format(truetype);
+}
+body{
+    background-color: rgb(59, 5, 66);
+    --fontchutrungtam: "DancingScript", cursive;
+    --fontchuchung: "Calibri", sans-serif;
+    --mauchuchung: white;
+    margin: 0;
+}
+a{
+    /* color: var(--mauchuchung); */
+    text-decoration: none;
+}
+#thanhmenu{
+    top: 0;
+    position: fixed;
+    height: 70px;
+    width: 98%;
+    font-family: var(--fontchuchung);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 30px;
+    background-color: black;
+    z-index: 99;
+}
+#thanhmenu a{
+    padding: 0px 20px 0px 20px;
+    font-size: 30px;
+    color: var(--mauchuchung);
+    text-decoration: none;
+    margin: 0 10px;
+}
+#thanhsubmenu i{
+    padding: 10px 10px 0px 0px ;
+}
+#thanhmenu i{
+    font-size: 40px;
+    color: rgb(243, 193, 100);
+    margin: 0 10px;
+}
+#backgroundtrangchu{
+    color: var(--mauchuchung);
+    text-align: center;
+    margin: 110px 30px 30px 30px;
+    /* height: min(100vh, 90%); */
+    height: 100%;
+    background: radial-gradient(circle at top 40px right 350px, rgba(255, 255, 255, 0.9) 10%, transparent 45%), linear-gradient(180deg, #F23C0C, #F6C3A8);
+    position: relative;
+}
+#backgroundtrangchu #notebackgroundtrangchu{
+    width: min(450px, 90%);
+    font-family: var(--fontchuchung);
+    text-align: center;
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: black;
+    font-size: 19px;
+    background-color: #ffffff ;
+    border-radius: 50px;
+}
+#backgroundtrangchu #notebackgroundtrangchu h4{
+    color: black;
+    margin: 0;
+    display: inline-block;
+    padding: 0px 30px 0px 10px;;
+}
+#backgroundtrangchu #notebackgroundtrangchu1{
+    text-align: center;
+    border-radius: 50px;
+    display: inline-block;
+    margin: 5px 10px 5px 10px;
+    color: var(--mauchuchung);
+    background-color: black;
+}
+#backgroundtrangchu #notebackgroundtrangchu1 h4{
+    padding: 5px 10px 5px 10px;
+    color: var(--mauchuchung);
+}
+#backgroundtrangchu #chutrungtambackground{
+    width: min(1050px, 90%);
+    font-family: var(--fontchutrungtam);
+    font-size: min(150px, 20vh);
+    transform: translate(-50%, -50%);
+    top: 230px;
+    left: 50%;
+    position: absolute;
+}   
+#backgroundtrangchu #anhbackgroundtrangchu img{
+    display: inline-block;
+    margin-top: 560px;
+    margin-bottom: 50px;
+    width: min(550px, 90%);
+    height: 950px;
+    background-color: transparent;
+    box-shadow: rgb(0, 0, 0, 0.7) 0px 0px 10px,
+    -70px 70px 20px rgb(0, 0, 0, 0.2);
+    border-radius: 60px;
+}
+#backgroundtrangchu .anhbentraiback1{
+    margin: 0px 40px 0px 10px;
+    background-color: white;
+    border-radius: 60px;
+    display: inline-block;
+}
