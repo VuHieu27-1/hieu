@@ -7,6 +7,7 @@ body{
     --fontchutrungtam: "DancingScript", cursive;
     --fontchuchung: "Calibri", sans-serif;
     --mauchuchung: white;
+    --mauchupage2: rgb(0, 0, 0);
     margin: 0;
 }
 a{
@@ -33,26 +34,18 @@ a{
     width: 100%;
     position: fixed;
     bottom: 0;
-    z-index: 99;
+    z-index: 999;
     display: none;
 }
-#slidethanhmenu a{
+#slidethanhmenu #thanhslidesubmenu a{
+    margin: 5px;
     padding: 0px 10px 0px 10px;
     font-size: 30px;
     color: var(--mauchuchung);
     text-decoration: none;
-    margin: 0 10px;
 }
 #slidethanhmenu a:hover{
     --mauchuchung: #ffb347;
-}
-#thanhsubmenu #homemobile{
-    padding: 0;
-    border: 3px solid var(--mauchuchung);
-    border-radius: 50%;
-}
-#thanhsubmenu #homemobile i{
-    transform: translateX(5px);
 }
 #thanhmenu a{
     padding: 0px 20px 0px 20px;
@@ -88,7 +81,7 @@ a{
 }
 #backgroundtrangchu{
     color: var(--mauchuchung);
-    margin: 110px 30px 30px 30px;
+    margin: 110px 30px 0px 30px;
     text-align: center;
     height: min(100vh, 90%);
     padding-top: 150px;
@@ -104,12 +97,12 @@ a{
     font-size: 19px;
     background-color: #ffffff ;
     border-radius: 50px;
-    transition: 0.3s ease;
+    transition: 0.1s ease;
 }
 #backgroundtrangchu #notebackgroundtrangchu:hover{
     border: 4px solid rgb(0, 0, 0);
     background: linear-gradient(90deg, #ff7e5f, #feb47b);
-    transition: 0.3s ease;
+    transition: 0.1s ease;
 }
 #backgroundtrangchu #notebackgroundtrangchu h4{
     color: black;
@@ -133,7 +126,7 @@ a{
     width: min(1050px, 90%);
     text-align: center;
     font-family: var(--fontchutrungtam);
-    font-size: min(100px, 20vh);
+    font-size: min(100px, 15vh);
     display: inline-block;
 }  
 #backgroundtrangchu #anhbackgroundtrangchu{
@@ -266,4 +259,34 @@ a{
 .tag:hover {
     transform: scale(1.1) rotate(0deg);
     box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+/* ==================================MERCH============================================ */
+#backgroundmerch{
+    background: linear-gradient(135deg, #f5dbce, #ead7cc);
+    padding: 0px 0px 20px 0px;
+    height: min(100vh, 90%);
+    margin: 0;
+    text-align: center;
+}
+#backgroundmerch h1{
+    display: inline-block;
+    padding: 80px 0px 10px 0px;
+    width: 700px;
+    margin: 0;
+    color: var(--mauchupage2);
+    font-family: var(--fontchutrungtam);
+    font-size: min(100px, 15vh);
+    font-weight: 600;
+
+}
+#backgroundmerch p{
+    color: rgba(0,0,0,0.6);
+    padding-bottom: 50px;
+    font-family: var(--fontchuchung);
+    font-size: 20px;
+    margin: 0;
+}
+#backgroundmerch video{
+    width: 90%;
+    border-radius: 10px;
 }
