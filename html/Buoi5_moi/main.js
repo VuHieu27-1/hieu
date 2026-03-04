@@ -84,3 +84,7 @@ function clickdualmode()
         localStorage.setItem("themedualmode", "dark");
     }
 }
+//========================Contact===========================//
+function check()
+{
+}

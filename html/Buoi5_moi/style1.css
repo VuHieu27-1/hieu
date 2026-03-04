@@ -1,5 +1,6 @@
 body{
     background-size: cover;
+    background-repeat: no-repeat !important;
 }
 #typephim1{
     text-align: center;

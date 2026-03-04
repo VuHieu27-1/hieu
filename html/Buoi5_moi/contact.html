@@ -10,7 +10,7 @@
 </head>
 <body>
     <div id="menu">
-        <a href="./index.html" id="home" class="light"><h1>MOVIES</h1></a>
+        <a href="./index.html" id="home"><h1>MOVIES</h1></a>
         <div id="theloai">
             <a href="" class="light"><b>Type</b></a>
             <ul type="none">
@@ -21,9 +21,9 @@
                 <li>Crime</li></b>
             </ul>
         </div>
-        <a href="#typephim"><b>Schedule</b></a>
-        <a href="#lich"><b>Showtimes</b></a>
-        <a href="#danhgia"><b>Reviews</b></a>
+        <a href="index.html#typephim"><b>Schedule</b></a>
+        <a href="index.html#lich"><b>Showtimes</b></a>
+        <a href="index.html#danhgia"><b>Reviews</b></a>
         <a href="" id="search"><b>Search</b></a>
         <a href="./contact.html" id=""><b>Contact</b></a>
         <i class="material-icons" id="searchicon">search</i>
@@ -56,7 +56,7 @@
         <a href="" id="search"><b>Search</b></a>
         <i class="material-icons" id="closemenu" onclick="clickmenu()">close</i>
     </div>
-    <div id="overload" onclick="clickmenu()"></div>
+    <div id="overload"></div>
         <!-- Nội dung của trang web sẽ được đặt ở đây -->
     </div>
     <div id="classiconmode">
@@ -100,20 +100,57 @@
                 <h2><b>☑️ Lựa Chọn</b></h2>
                 <hr>
                 <p>Giới tính</p>
-                <div class="gioitinh">
-                        <input type="radio" name="gioitinh" value="Nam">Nam
-                        <input type="radio" name="gioitinh" value="Nữ">Nữ
+                <div class="checkk-box-r">
+                        <input type="radio" name="gioitinh" value="Nam">
+                        <p>Nam</p>
+                </div>
+                <div class="checkk-box-r">
+                        <input type="radio" name="gioitinh" value="Nu">
+                        <p>Nữ</p>
                 </div>
                 <p>Sở thích (Checkbox)</p>
-                <div class="checkbox">
+                    <div class="checkk-box-r">
                         <input type="checkbox" name="checkbox">
+                        <p>Đọc sách</p>
+                    </div>
+                    <div class="checkk-box-r">
                         <input type="checkbox" name="checkbox">
+                        <p>Nghe nhạc</p>
+                    </div>
+                    <div class="checkk-box-r">
                         <input type="checkbox" name="checkbox">
+                        <p>Thể thao</p>
+                    </div>
+                    <div class="checkk-box-r">
                         <input type="checkbox" name="checkbox">
-                        <input type="checkbox" name="checkbox">
+                        <p>Lập trình</p>
+                    </div>
+                </div>
+                <div class="submit-buttom">
+                    <h2 class="guiform nhanvao" onclick="check()">Gửi Form</h2>
+                    <h2 class="refreshform nhanvao">Làm Mới</h2>
+                </div>
+                <div class="info-form-submit">
+                    <p class="title-submit">📌 Thông tin bạn đã chọn/nhập</p>
+                    <p id="outputten">Họ và tên: </p>
+                    <p id="outputuser">Tên đăng nhập: </p>
+                    <p id="outputemail">Email: </p>
+                    <p id="outputtel">Số điện thoại: </p>
+                    <p id="outputweb">Website: </p>
+                    <p id="outputsearch">Tìm kiếm: </p>
+                    <p id="outputage">Tuổi: </p>
+                    <p id="outputnumberof">Số lượng: </p>
+                    <p id="outputtendate">Ngày sinh: </p>
+                    <p id="outputfile">Tài liệu đính kèm: </p>
                 </div>
             </div>
         </div>
+    </div>
+    <div id="alert-success">
+            <h1>✅ Form đã được gửi thành công! Cảm ơn bạn đã liên hệ.</h1>
+    </div>
+    <div id="alert-fail">
+            <h1>❌ Thiếu thông tin, xin hãy điền đầy đủ thông tin</h1>
     </div>
     <div id="footer">
         <div>

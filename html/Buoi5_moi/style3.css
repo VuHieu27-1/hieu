@@ -1,26 +1,32 @@
 body{
+    --backgroundinfosubmit: rgba(199, 238, 238, 0.8);
     --blacktext: rgb(0, 0, 0);
-    background: linear-gradient(180deg, rgba(59, 59, 59, 0.9), rgba(145, 142, 142, 0.9) ) !important;
+    --backgroundmain : linear-gradient(180deg, rgba(59, 59, 59, 0.9), rgba(145, 142, 142, 0.9) ) ;
+    --backgroundcontactpage: white;
+    --backgroundchuh1: linear-gradient(to left, rgb(83, 248, 248),  rgb(178, 245, 245));
+    --colorchuh2: rgb(18, 97, 97);
+    background: var(--backgroundmain) !important;
 }
 #contact-page{
     color: var(--blacktext);
     text-align: center;
-    padding-bottom: 50px;
+    padding-bottom: 10px;
 }
 .main-contact-page{
     padding-top: 120px;
-    background-color: white;
+    background-color: var(--backgroundcontactpage);
     display: inline-block;
     width: min(700px, 900%);
     height: 100%;
     border-radius: 20px;
     box-shadow: 0px 0px 20px rgba(0, 0 ,0, 0.9);
+
 }
 .main-contact-page h1{
     color: black;
     margin: 0;
     padding: 50px;
-    background: linear-gradient(to left, rgb(83, 248, 248),  rgb(178, 245, 245));
+    background: var(--backgroundchuh1);
 }
 .conten-contact-page
 {
@@ -29,7 +35,7 @@ body{
     text-align: left;
 }
 .conten-contact-page h2{
-    color: rgb(18, 97, 97);
+    color: var(--colorchuh2);
     font-size: 20px;
 }
 .conten-contact-page hr{
@@ -63,12 +69,88 @@ body{
     padding: 5px;
     height: 20px;
 }
-.gioitinh input {
-    transform: scale(0.5);
-    width: 50px;
+.checkk-box-r
+{
+    height: 40px;
+}
+.checkk-box-r p{
+    transform: translate(-10px,-15px);
     display: inline-block;
 }
-.checkbox{
-    width: 50px;
+.checkk-box-r input{
+    transform: scale(0.5);
     display: inline-block;
+    width: 40px;
+}
+.guiform{
+    color: black;
+    background: linear-gradient(to left , rgba(155, 66, 238, 0.9), rgba(196, 147, 241, 0.9));
+    border-radius: 20px;
+    padding: 15px 0px 10px 0px;
+    margin: 20px 30px 5px 30px;
+    transition: 0.3s;
+}
+.refreshform{
+    color: black;
+    background: linear-gradient(to left , rgba(165, 241, 94, 0.9), rgba(204, 241, 155, 0.9));
+    border-radius: 20px;
+    padding: 15px 0px 10px 0px;
+    margin: 20px 30px 5px 30px;
+    transition: 0.5s;
+}
+.nhanvao:hover{
+    transform: translateY(-5px);
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.9);
+    transition: 0.5s;
+}
+.info-form-submit{
+    border-radius: 20px;
+    margin: 20px 35px 20px 35px;
+    background-color: var(--backgroundinfosubmit);
+    padding: 5px 50px 10px 20px;
+    text-align: left;
+}
+.info-form-submit .title-submit{
+    font-family: 'Times New Roman', Times, serif;
+    color: rgb(4, 82, 43);
+    border-bottom: none;
+}
+.info-form-submit p{
+    font-weight: 700;
+    padding-bottom: 10px;
+    font-family: "Calibri", sans-serif;
+    border-bottom: 2px dashed rgb(207, 204, 204);
+}
+/* =====================================ALERT=========================== */
+#alert-success{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--maucuachung);
+    text-shadow: var(--hieuungsang);
+    text-align: center;
+    background: linear-gradient(to bottom, rgba(74, 143, 111, 0.8), rgba(35, 82, 73, 0.7), rgba(14, 59, 51, 0.6));
+    width: 900px;
+    z-index: 9992;
+    display: none;
+}
+#alert-fail{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--maucuachung);
+    text-shadow: var(--hieuungsang);
+    text-align: center;
+    background: linear-gradient(to bottom, rgba(202, 101, 110, 0.8), rgba(207, 47, 47, 0.7), rgba(236, 18, 18, 0.6));
+    width: 900px;
+    z-index: 9992;
+    display: none;
+}
+.missing-data{
+    color: red
+}
+.hienthialert{
+    display: block !important;
 }
