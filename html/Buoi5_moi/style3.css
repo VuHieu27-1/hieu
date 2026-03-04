@@ -1,0 +1,74 @@
+body{
+    --blacktext: rgb(0, 0, 0);
+    background: linear-gradient(180deg, rgba(59, 59, 59, 0.9), rgba(145, 142, 142, 0.9) ) !important;
+}
+#contact-page{
+    color: var(--blacktext);
+    text-align: center;
+    padding-bottom: 50px;
+}
+.main-contact-page{
+    padding-top: 120px;
+    background-color: white;
+    display: inline-block;
+    width: min(700px, 900%);
+    height: 100%;
+    border-radius: 20px;
+    box-shadow: 0px 0px 20px rgba(0, 0 ,0, 0.9);
+}
+.main-contact-page h1{
+    color: black;
+    margin: 0;
+    padding: 50px;
+    background: linear-gradient(to left, rgb(83, 248, 248),  rgb(178, 245, 245));
+}
+.conten-contact-page
+{
+    font-family: "Calibri", sans-serif;
+    padding: 0px 30px 5px 30px;
+    text-align: left;
+}
+.conten-contact-page h2{
+    color: rgb(18, 97, 97);
+    font-size: 20px;
+}
+.conten-contact-page hr{
+    opacity: 0.4;
+}
+.conten-contact-page p {
+    font-weight: 600;
+    margin: 0;
+    padding: 20px 0px 10px 0px;
+    font-size: 15px;
+}
+.note-context{
+    opacity: 0.5;
+    font-size: 10px;
+}
+.conten-contact-page input[value]
+{
+    color: var(--blacktext);
+}
+.conten-contact-page input{
+    padding-left: 20px;
+    font-weight: 600;
+    border: 3px solid rgb(207, 204, 204);
+    border-radius: 5px;
+    width: 95%;
+    height: 40px;
+}
+.conten-contact-page #file{
+    border-style: dashed;
+    width: 40%;
+    padding: 5px;
+    height: 20px;
+}
+.gioitinh input {
+    transform: scale(0.5);
+    width: 50px;
+    display: inline-block;
+}
+.checkbox{
+    width: 50px;
+    display: inline-block;
+}

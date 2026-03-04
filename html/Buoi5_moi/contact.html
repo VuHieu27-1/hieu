@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="style3.css">
+</head>
+<body>
+    <div id="menu">
+        <a href="./index.html" id="home" class="light"><h1>MOVIES</h1></a>
+        <div id="theloai">
+            <a href="" class="light"><b>Type</b></a>
+            <ul type="none">
+                <b><li>Action</li>
+                <li>Adventure</li>
+                <li>Animation</li>
+                <li>Comedy</li>
+                <li>Crime</li></b>
+            </ul>
+        </div>
+        <a href="#typephim"><b>Schedule</b></a>
+        <a href="#lich"><b>Showtimes</b></a>
+        <a href="#danhgia"><b>Reviews</b></a>
+        <a href="" id="search"><b>Search</b></a>
+        <a href="./contact.html" id=""><b>Contact</b></a>
+        <i class="material-icons" id="searchicon">search</i>
+        <i class="material-icons" id="menuicon" onclick="clickmenu()">menu</i>
+        <div id="hoso">
+            <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
+            <ul type="none">
+                <li>User</li>
+                <li>Setting</li>
+                <li>Exit</li>
+            </ul>
+        </div>
+    </div>
+    <div id="slidemenu">
+        <a href="./index.html" id="home"><b>MOVIES</b></a>
+        <div id="theloai" onclick="clicktheloai()">
+            <b>Type</b>
+            <ul type="none">
+                <b><li>Action</li>
+                <li>Adventure</li>
+                <li>Animation</li>
+                <li>Comedy</li>
+                <li>Crime</li></b>
+            </ul>
+        </div>
+        <a href="#typephim"><b>Schedule</b></a>
+        <a href="#lich"><b>Showtimes</b></a>
+        <a href="#danhgia"><b>Reviews</b></a>
+        <a href="./contact.html" id=""><b>Contact</b></a>
+        <a href="" id="search"><b>Search</b></a>
+        <i class="material-icons" id="closemenu" onclick="clickmenu()">close</i>
+    </div>
+    <div id="overload" onclick="clickmenu()"></div>
+        <!-- Nội dung của trang web sẽ được đặt ở đây -->
+    </div>
+    <div id="classiconmode">
+        <i class="material-icons" id="nightmodeicon" onclick="clickdualmode()">mode_night</i>
+        <i class="material-icons" id="lightmodeicon" onclick="clickdualmode()">sunny</i>
+    </div>
+    <div id="contact-page">
+        <div class="main-contact-page">
+            <h1><b>📋 Contact with us</b></h1>
+            <div class="conten-contact-page">
+                <h2><b>📝 Thông Tin Cơ Bản</b></h2>
+                <hr>
+                <p>Họ và Tên</p>
+                <input type="text" name="hovaten" id="hovaten" placeholder="Nhập họ và tên của bạn">
+                <p>Tên đăng nhập</p>
+                <input type="text" name="user" id="user" placeholder="Tên đăng nhập">
+                <p>Email</p>
+                <input type="email" name="mail" id="mail" value="@gmail.com" placeholder="example@gmail.com">
+                <p class="note-context">Chỉ chữ cái và số, tối thiểu 3 ký tự</p>
+                <p>Số điện thoại</p>
+                <input type="tel" name="phone" id="phone" placeholder="098765421">
+                <p>Website</p>
+                <input type="url" name="web" id="web" value="https://" placeholder="https://example.com">
+                <p>Tìm kiếm</p>
+                <input type="text" name="search" id="search" placeholder="🔍 Tìm kiếm">
+                <h2><b>🔢 Thông Tin Số</b></h2>
+                <hr>
+                <p>Tuổi</p>
+                <input type="number" name="age" id="age" placeholder="18">               
+                <p>Số lượng</p>
+                <input type="number" name="num" id="num" placeholder="1" value="1"> 
+                <h2><b>📅 Ngày và Giờ</b></h2>
+                <hr>
+                <p>Ngày sinh</p>
+                <input type="date" name="date" id="date">
+                <h2><b>📎 File</b></h2>
+                <hr>
+                <p>Tài liệu đính kèm</p>
+                <input type="file" name="file" id="file"> 
+                <p class="note-context">Chọn 1 file</p>
+                <h2><b>☑️ Lựa Chọn</b></h2>
+                <hr>
+                <p>Giới tính</p>
+                <div class="gioitinh">
+                        <input type="radio" name="gioitinh" value="Nam">Nam
+                        <input type="radio" name="gioitinh" value="Nữ">Nữ
+                </div>
+                <p>Sở thích (Checkbox)</p>
+                <div class="checkbox">
+                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="footer">
+        <div>
+            <b><p>© 2026 Hiếu LapTop – All Rights Reserved.</p>
+            <p>Powered by the spirit of the Pharaoh and the Heart of the Cards.</p>
+            <p>Address: 123 ABC Street, XYZ City</p>
+            <p>Contact the Duel Arena: hieulaptop@gmail.com | 0123-456-789</p></b>
+        </div>
+        <div id="footerthongtin">
+            <img src="./asset/img/318.jpg" alt="avatar bị hỏng" title="Avatar của Hiếu">
+            <a href="https://www.facebook.com/KanakiYuya" target="_blank"><p>Facebook</p></a>
+            <a href="https://discord.com/users/hiu2708"><p>Discord</p></a>
+            <a href="https://x.com/Yuya61851413"><p>Twitter</p></a>
+        </div>
+    </div>
+    <script src="./main.js"></script>
+</body>
+</html>
