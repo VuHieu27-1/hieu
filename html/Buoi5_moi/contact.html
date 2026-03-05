@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="style3.css">
 </head>
-<body>
+<body class="light-contact">
     <div id="menu">
         <a href="./index.html" id="home" class="light"><h1>MOVIES</h1></a>
         <div id="theloai">
@@ -81,7 +81,7 @@
                 <p>Website</p>
                 <input type="url" name="web" id="web" value="https://" placeholder="https://example.com">
                 <p>Tìm kiếm</p>
-                <input type="text" name="search" id="search" placeholder="🔍 Tìm kiếm">
+                <input type="text" name="search" id="input-search" placeholder="🔍 Tìm kiếm">
                 <h2><b>🔢 Thông Tin Số</b></h2>
                 <hr>
                 <p>Tuổi</p>
@@ -101,34 +101,34 @@
                 <hr>
                 <p>Giới tính</p>
                 <div class="checkk-box-r">
-                        <input type="radio" name="gioitinh" value="Nam">
+                        <input type="radio" name="gioitinh" value="Nam" id="nam">
                         <p>Nam</p>
                 </div>
                 <div class="checkk-box-r">
-                        <input type="radio" name="gioitinh" value="Nu">
+                        <input type="radio" name="gioitinh" value="Nu" id="nu">
                         <p>Nữ</p>
                 </div>
                 <p>Sở thích (Checkbox)</p>
                     <div class="checkk-box-r">
-                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox" class="check-box-l">
                         <p>Đọc sách</p>
                     </div>
                     <div class="checkk-box-r">
-                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox" class="check-box-l">
                         <p>Nghe nhạc</p>
                     </div>
                     <div class="checkk-box-r">
-                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox" class="check-box-l">
                         <p>Thể thao</p>
                     </div>
                     <div class="checkk-box-r">
-                        <input type="checkbox" name="checkbox">
+                        <input type="checkbox" name="checkbox" class="check-box-l">
                         <p>Lập trình</p>
                     </div>
                 </div>
                 <div class="submit-buttom">
                     <h2 class="guiform nhanvao" onclick="check()">Gửi Form</h2>
-                    <h2 class="refreshform nhanvao">Làm Mới</h2>
+                    <h2 class="refreshform nhanvao" onclick="refresh_data()">Làm Mới</h2>
                 </div>
                 <div class="info-form-submit">
                     <p class="title-submit">📌 Thông tin bạn đã chọn/nhập</p>
@@ -150,7 +150,10 @@
             <h1>✅ Form đã được gửi thành công! Cảm ơn bạn đã liên hệ.</h1>
     </div>
     <div id="alert-fail">
-            <h1>❌ Thiếu thông tin, xin hãy điền đầy đủ thông tin</h1>
+            <h1>❌ Thông tin sai, xin hãy điền lại thông tin</h1>
+    </div>
+    <div id="overload-alert" onclick="off_alert()"></div>
+        <!-- Nội dung của trang web sẽ được đặt ở đây -->
     </div>
     <div id="footer">
         <div>

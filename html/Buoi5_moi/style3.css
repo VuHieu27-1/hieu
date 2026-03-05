@@ -1,11 +1,25 @@
 body{
-    --backgroundinfosubmit: rgba(199, 238, 238, 0.8);
-    --blacktext: rgb(0, 0, 0);
-    --backgroundmain : linear-gradient(180deg, rgba(59, 59, 59, 0.9), rgba(145, 142, 142, 0.9) ) ;
-    --backgroundcontactpage: white;
-    --backgroundchuh1: linear-gradient(to left, rgb(83, 248, 248),  rgb(178, 245, 245));
-    --colorchuh2: rgb(18, 97, 97);
     background: var(--backgroundmain) !important;
+}
+.light-contact{
+    --backgroundinfosubmit: rgba(86, 134, 134, 0.8);
+    --blacktext:#b8bcc8 ;
+    --backgroundmain : linear-gradient(180deg, rgba(59, 59, 59, 0.9), rgba(145, 142, 142, 0.9) ) ;
+    --backgroundcontactpage: #22252b;
+    --backgroundchuh1: linear-gradient(to left, rgb(179, 216, 216),  rgb(54, 85, 85));
+    --colorchuh2: #e4e6eb;
+    --bordercontactpage: 3px solid #3a3f47;
+    transition: 0.3s ease;
+}
+.dark-contact{
+    --backgroundchuh1: linear-gradient(to left, rgb(83, 248, 248),  rgb(178, 245, 245));
+    --backgroundmain: linear-gradient(180deg, rgba(194, 247, 222, 0.9), rgba(255, 255, 255, 0.8) );
+    --backgroundcontactpage:  #e8f6f3;
+    --bordercontactpage: 3px solid #b9bcc0;
+    --blacktext: black;
+    --colorchuh2: #145a49;
+    --backgroundinfosubmit: rgba(199, 238, 238, 0.8);
+    transition: 0.3s ease;
 }
 #contact-page{
     color: var(--blacktext);
@@ -16,10 +30,10 @@ body{
     padding-top: 120px;
     background-color: var(--backgroundcontactpage);
     display: inline-block;
-    width: min(700px, 900%);
+    width: min(700px, 90%);
     height: 100%;
     border-radius: 20px;
-    box-shadow: 0px 0px 20px rgba(0, 0 ,0, 0.9);
+    box-shadow: 0px 0px 20px rgba(0, 0 ,0, 0.7);
 
 }
 .main-contact-page h1{
@@ -56,9 +70,11 @@ body{
     color: var(--blacktext);
 }
 .conten-contact-page input{
+    color: var(--blacktext);
     padding-left: 20px;
     font-weight: 600;
-    border: 3px solid rgb(207, 204, 204);
+    border: var(--bordercontactpage);
+    background-color: var(--backgroundcontactpage);
     border-radius: 5px;
     width: 95%;
     height: 40px;
@@ -95,7 +111,7 @@ body{
     background: linear-gradient(to left , rgba(165, 241, 94, 0.9), rgba(204, 241, 155, 0.9));
     border-radius: 20px;
     padding: 15px 0px 10px 0px;
-    margin: 20px 30px 5px 30px;
+    margin: 20px 30px 15px 30px;
     transition: 0.5s;
 }
 .nhanvao:hover{
@@ -109,25 +125,35 @@ body{
     background-color: var(--backgroundinfosubmit);
     padding: 5px 50px 10px 20px;
     text-align: left;
+    display : none;
 }
 .info-form-submit .title-submit{
     font-family: 'Times New Roman', Times, serif;
-    color: rgb(4, 82, 43);
+    color: var(--colorchuh2);
     border-bottom: none;
 }
 .info-form-submit p{
+    color: var(--colorchuh2);
     font-weight: 700;
     padding-bottom: 10px;
     font-family: "Calibri", sans-serif;
     border-bottom: 2px dashed rgb(207, 204, 204);
 }
 /* =====================================ALERT=========================== */
+#overload-alert
+{
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+}
 #alert-success{
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: var(--maucuachung);
+    color: white;
     text-shadow: var(--hieuungsang);
     text-align: center;
     background: linear-gradient(to bottom, rgba(74, 143, 111, 0.8), rgba(35, 82, 73, 0.7), rgba(14, 59, 51, 0.6));
@@ -140,16 +166,17 @@ body{
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: var(--maucuachung);
+    color: white;
     text-shadow: var(--hieuungsang);
     text-align: center;
     background: linear-gradient(to bottom, rgba(202, 101, 110, 0.8), rgba(207, 47, 47, 0.7), rgba(236, 18, 18, 0.6));
-    width: 900px;
+    width: min(900px, 70%);
     z-index: 9992;
     display: none;
 }
 .missing-data{
-    color: red
+    color: red !important;
+    transition: 0.5s;
 }
 .hienthialert{
     display: block !important;
