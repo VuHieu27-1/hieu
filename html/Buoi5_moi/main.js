@@ -49,7 +49,7 @@ function clickdualmode() {
             darkthanhtypephim.classList.add("dark3");
             darkthanhtypephim.classList.remove("light3");
         }
-        localStorage.setItem("themedualmode", "light");
+        localStorage.setItem("themedualmode", "dark");
     } else {
         if (nightModeIcon) nightModeIcon.classList.remove("tatnightmode");
         if (lightModeIcon) lightModeIcon.classList.remove("batlightmode");
@@ -72,14 +72,14 @@ function clickdualmode() {
             darkthanhtypephim.classList.add("light3");
             darkthanhtypephim.classList.remove("dark3");
         }
-        localStorage.setItem("themedualmode", "dark");
+        localStorage.setItem("themedualmode", "light");
     }
 }
 
 function applyTheme() {
     let theme = localStorage.getItem('themedualmode');
 
-    if (theme === 'light') {
+    if (theme === 'dark') {
         if (nightModeIcon) nightModeIcon.classList.add("tatnightmode");
         if (lightModeIcon) lightModeIcon.classList.add("batlightmode");
         body.classList.add("dark", "dark3", "dark-contact");
