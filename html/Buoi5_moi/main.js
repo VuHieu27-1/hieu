@@ -7,7 +7,7 @@ let darkthanhtypephim = document.querySelector('#typephim');
 let body = document.querySelector("body");
 let nightModeIcon = document.querySelector("#nightmodeicon");
 let lightModeIcon = document.querySelector("#lightmodeicon");
-const today = Temporal.Now.plainDateISO();
+// const today = Temporal.Now.plainDateISO();
 if(localStorage.getItem('themedualmode') == "") {
     localStorage.setItem('themedualmode', 'light');
 }
@@ -258,7 +258,7 @@ function check() {
     if (date) {
         let numberage = document.querySelector("#age");
         let arr = date.value.split("-");
-        if(today.year - parseInt(arr[0]) == numberage.value){
+        if(2026 - parseInt(arr[0]) == numberage.value){
             checkage = true;
             console.log(checkage);
         }
