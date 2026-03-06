@@ -8,7 +8,7 @@ let body = document.querySelector("body");
 let nightModeIcon = document.querySelector("#nightmodeicon");
 let lightModeIcon = document.querySelector("#lightmodeicon");
 const today = Temporal.Now.plainDateISO();
-if(localStorage.getItem('themedualmode') === null) {
+if(localStorage.getItem('themedualmode') == "") {
     localStorage.setItem('themedualmode', 'light');
 }
 function clickmenu() {
