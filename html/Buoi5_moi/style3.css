@@ -27,7 +27,7 @@ body{
     padding-bottom: 10px;
 }
 .main-contact-page{
-    padding-top: 120px;
+    padding-top: min(120px, 10%);
     background-color: var(--backgroundcontactpage);
     display: inline-block;
     width: min(700px, 90%);
