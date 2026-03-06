@@ -8,6 +8,8 @@ let body = document.querySelector("body");
 let nightModeIcon = document.querySelector("#nightmodeicon");
 let lightModeIcon = document.querySelector("#lightmodeicon");
 // const today = Temporal.Now.plainDateISO();
+let today = new Date();
+let year = today.getFullYear();
 if(localStorage.getItem('themedualmode') == "") {
     localStorage.setItem('themedualmode', 'light');
 }
@@ -258,7 +260,8 @@ function check() {
     if (date) {
         let numberage = document.querySelector("#age");
         let arr = date.value.split("-");
-        if(2026 - parseInt(arr[0]) == numberage.value){
+        console.log(year);
+        if(year - parseInt(arr[0]) == numberage.value){
             checkage = true;
             console.log(checkage);
         }
