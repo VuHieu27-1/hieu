@@ -258,6 +258,7 @@ function check() {
     if (date) {
         let numberage = document.querySelector("#age");
         let arr = date.value.split("-");
+        console.log(today.year - parseInt(arr[0]));
         if(today.year - parseInt(arr[0]) == numberage.value){
             checkage = true;
             console.log(checkage);
@@ -293,10 +294,12 @@ function check() {
      {
         alert_soverload.classList.add("hienthialert");
         alertfail.classList.add("hienthialert");
+        localStorage.setItem("contactdata", "fail");
      }else
     {
         alert_soverload.classList.add("hienthialert");
         alertsuccess.classList.add("hienthialert");
+        localStorage.setItem("contactdata", "success");
     }
 }
 function off_alert()
@@ -351,4 +354,51 @@ function refresh_data()
     if (file) {
         file.value = "";
     }
+}
+//========================Table-Contact===========================//
+let index = 1;
+function add_table() {
+    content_table_info = document.querySelector(".content_table_info");
+    if(localStorage.getItem("contactdata") === "success")
+    {
+        content_table_info.innerHTML += `
+        <tr>
+            <td>${index}</td>
+            <td>${hovaten.value}</td>
+            <td>${user.value}</td>
+            <td>${email.value}</td>
+            <td>${telephone.value}</td>
+            <td>${urlweb.value}</td>
+            <td>${search.value}</td>
+            <td>${numberage.value}</td>
+            <td>${numberof.value}</td>
+            <td>${date.value}</td>
+            <td>${file.value}</td>
+        </tr>
+        `;
+        index++;
+    }
+}
+function display_table()
+{
+    document.querySelector(".table_info").classList.toggle("display_table_info");
+}
+function refresh_table(){
+    content_table_info = document.querySelector(".content_table_info");
+    index = 1;
+    content_table_info.innerHTML = `
+    <tr>
+        <th>STT</th>
+        <th>Họ và tên</th>
+        <th>Tên đăng nhập</th>
+        <th>Email</th>
+        <th>Số điện thoại</th>
+        <th>Website</th>
+        <th>Tìm kiếm</th>
+        <th>Tuổi:</th>
+        <th>Số lượng</th>
+        <th>Ngày sinh</th>
+        <th>Tài liệu đính kèm</th>
+    </tr>
+    `;
 }

@@ -1,0 +1,23 @@
+#gioitinh
+{
+    display: block;
+}
+#gioitinh input
+{
+    display: inline-block;
+}
+#gioitinh p{
+    display: inline-block;
+}
+#table{
+    overflow: scroll;
+    height: 400px;
+}
+table
+{
+    width: 100%;
+    border-spacing: 0;
+}
+tr, th, td{
+    border: 2px solid black ;
+}
