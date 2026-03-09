@@ -156,6 +156,9 @@ body{
     font-family: "Calibri", sans-serif;
     border-bottom: 2px dashed rgb(207, 204, 204);
 }
+span{
+    color: rgb(211, 91, 91);
+}
 /* =====================================ALERT=========================== */
 #overload-alert
 {

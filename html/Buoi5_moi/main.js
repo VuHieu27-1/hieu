@@ -260,13 +260,8 @@ function check() {
     if (date) {
         let numberage = document.querySelector("#age");
         let arr = date.value.split("-");
-<<<<<<< HEAD
         console.log(today.year - parseInt(arr[0]));
         if(today.year - parseInt(arr[0]) == numberage.value){
-=======
-        console.log(year);
-        if(year - parseInt(arr[0]) == numberage.value){
->>>>>>> d6fcf21ddf924d4dc1d57e650b35aa6aa53e07ec
             checkage = true;
             console.log(checkage);
         }
