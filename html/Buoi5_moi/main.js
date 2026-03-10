@@ -232,18 +232,6 @@ function check() {
             outputsearch.classList.remove("missing-data");
         }
     }
-    if (numberage) {
-        if (outputage.textContent !== "Tuổi:") {
-            outputage.textContent = "Tuổi:";
-            outputage.classList.add("missing-data");
-        }
-        if (numberage.value < 6 ) {
-            outputage.textContent += " (trống)";
-        } else {
-            outputage.textContent += " " + numberage.value;
-            outputage.classList.remove("missing-data");
-        }
-    }
     if (numberof) {
         let tuoi = numberof.value;
         if (outputnumberof.textContent !== "Số lượng:") {
@@ -258,23 +246,22 @@ function check() {
         }
     }
     if (date) {
-        let numberage = document.querySelector("#age");
         let arr = date.value.split("-");
         console.log(year - parseInt(arr[0]));
-        if(year - parseInt(arr[0]) == numberage.value){
-            checkage = true;
-            console.log(checkage);
-        }
         if (outputtendate.textContent !== "Ngày sinh:") {
-            
+            outputage.textContent = "Tuổi:";
+            outputage.classList.add("missing-data");
             outputtendate.textContent = "Ngày sinh:";
             outputtendate.classList.add("missing-data");
         }
-        if (date.value === "" || !checkage) {
+        if (date.value === "") {
+            outputage.textContent += " (trống)";
             outputtendate.textContent += " (trống)";
         } else {
+            outputage.textContent += " " + (year - parseInt(arr[0]));
             outputtendate.textContent += " " + date.value;
             outputtendate.classList.remove("missing-data");
+            outputage.classList.remove("missing-data");
         }
     }
     if (file) {
@@ -291,8 +278,8 @@ function check() {
     }
     let gioitinhnam = document.querySelector("#nam")
     let gioitinhnu = document.querySelector("#nu")
-    if(hovaten.value === "" || user.value === "" || email.value === "@gmail.com" || telephone.value === "" || urlweb.value === "https://" || numberage.value < 6 || 
-        numberof.value === "" || date.value === "" || file.value === "" || !checkage || (gioitinhnam.checked == false && gioitinhnu.checked == false))
+    if(hovaten.value === "" || user.value === "" || email.value === "@gmail.com" || telephone.value === "" || urlweb.value === "https://" || 
+        numberof.value === "" || date.value === "" || file.value === "" || (gioitinhnam.checked == false && gioitinhnu.checked == false))
      {
         alert_soverload.classList.add("hienthialert");
         alertfail.classList.add("hienthialert");
@@ -360,6 +347,7 @@ function refresh_data()
 //========================Table-Contact===========================//
 let index = 1;
 function add_table() {
+    let arr = date.value.split("-");
     content_table_info = document.querySelector(".content_table_info");
     if(localStorage.getItem("contactdata") === "success")
     {
@@ -372,7 +360,7 @@ function add_table() {
             <td>${telephone.value}</td>
             <td>${urlweb.value}</td>
             <td>${search.value}</td>
-            <td>${numberage.value}</td>
+            <td>${year - parseInt(arr[0])}</td>
             <td>${numberof.value}</td>
             <td>${date.value}</td>
             <td>${file.value}</td>
