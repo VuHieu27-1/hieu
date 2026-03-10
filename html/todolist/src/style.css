@@ -1,0 +1,154 @@
+@font-face {
+    font-family: "font-pally";
+    src: url(../asset/font/Fonts/WEB/fonts/Pally-Regular.ttf) format("truetype");
+}
+body{
+    --fontchuchung : "font-pally", serif;
+    --background_color : linear-gradient(180deg, rgba(255, 214, 231, 0.5), rgba(255, 194, 220, 0.9));
+    --color_main : #7a1e3a;
+    --hieuungsang: 0 0 10px rgba(255,255,255,0.6);
+    margin: 0;
+    padding: 0;
+}
+#home_page{
+    width: 100vw;
+    height: 100vh;
+    background: var(--background_color);
+}
+#menu{
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 20px;
+}
+.logo_page{
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+}
+#menu i{
+    position: fixed;
+    right: 20px;
+    color: var(--color_main);
+    font-size: 50px;
+    cursor: pointer;
+}
+.text_center{
+    font-size: 90px;
+    margin: 0;
+    padding-top: 150px;
+    padding-bottom: 50px;
+    text-align: center;
+    color: var(--color_main);
+    font-family: var(--fontchuchung);
+}
+/* ===============================================Main-Content================================================= */
+#content_page{
+    text-align: center;
+}
+#content_block{
+    display:inline-flex;
+    justify-content: center;
+    width: min(600px, 50%);
+}              
+.block_content{
+    display: inline-block;
+    margin: 20px;
+    text-align: center;
+    width: min(200px, 100%);
+    height: 250px;
+    border-radius: 10px;
+    border: 2px solid #ffffff;
+    box-shadow: 0px 0px 10px rgba(170, 88, 88, 0.9);
+    background: linear-gradient(135deg, rgba(160, 249, 255, 0.5), rgba(255, 255, 255, 0.6));
+}
+.block_content i{
+    background: rgba(24, 186, 197, 0.3);
+    margin-top: 70px;
+    padding: 10px;
+    font-size: 70px;
+    color: var(--color_main);
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.content_all{
+    background: linear-gradient(135deg, rgba(248, 247, 191, 0.5), rgba(228, 245, 132, 0.6));
+}
+.content_all i{
+    margin-top: 30px;
+    background: rgba(236, 240, 13, 0.4);
+}
+.content_all p{
+    margin: 10px;
+    font-weight: 700;
+    font-size: 25px;
+    color: var(--color_main);
+    font-family: var(--fontchuchung);
+}
+.size_point{
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+    font-size: 20px !important;
+    cursor: default !important;
+}
+/* ==============================ADD_TASK==============================*/
+#add_tasks{
+    font-family: var(--fontchuchung);
+    font-size: 50px;
+    text-align: center;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(800px, 80%);
+    padding: 20px 20px 20px 20px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+    background:rgb(236, 205, 205);
+    transform: translate(-50%, -50%);
+    border-radius: 20px;
+    z-index: 991;
+    display: none;
+}
+#over_load{
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+}
+#add_tasks h3{
+    margin: 0;
+    padding: 0;
+    color: rgb(134, 56, 56);
+    text-shadow: var(--hieuungsang);
+}
+#input_task_name{
+    font-size:20px;
+    transform: translateX(-30px);
+    padding: 30px;
+    width: 60%;
+    border-radius: 5px;
+    border: 2px solid transparent;
+    outline: none;
+    box-shadow: 0 0 10px rgba(170, 88, 88, 0.9);
+    color: rgb(167, 34, 167);
+}
+#input_task_name:focus{
+    border: 2px solid var(--color_main);
+}
+#add_task_btn{  
+    margin-top: 20px;
+    display: inline-block;
+    font-family: var(--fontchuchung );
+    color: var(--color_main);
+    font-size: 30px;
+    background: var(--background_color);
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(170, 88, 88, 0.9);    
+    cursor: pointer;
+}
+.diplay_block_add_task{
+    display: block !important;
+}

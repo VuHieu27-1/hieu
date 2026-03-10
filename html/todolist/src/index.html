@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <title>TodoList</title>
+</head>
+<body>
+    <div id="home_page">
+        <div id="menu">
+            <img src="../asset/img/logo_page.jpg" alt="" class="logo_page">
+            <i class="material-icons">menu</i>
+        </div>
+        <div id="content_page">
+            <h1 class="text_center">My List</h1>
+            <div id="content_block">
+                <div class="block_content content_all">
+                    <i class="material-icons">apps</i>
+                    <p>All Tasks</p>
+                    <p class="number_of_task"><i class="material-icons size_point">brightness_1</i></p>
+                </div>
+                <div class="block_content">
+                    <i class="material-icons" onclick="add_task()">add</i>
+                </div>
+            </div>
+        </div>
+        <div id="add_tasks">
+            <h3>Add Task</h3>
+            <input type="text" placeholder="Enter task name" id="input_task_name">
+            <button id="add_task_btn">Add Task</button>
+        </div>
+        <div id="over_load" onclick="add_task()">
+            <!-- Noi dung trong -->
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
