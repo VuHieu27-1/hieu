@@ -6,6 +6,7 @@ let nu = document.querySelector("#nu");
 let index_tt = -1;
 let check_gioi_tinh;
 let check_edit = false;
+let check_loc_nam = false;
 // localStorage.removeItem("data_users");
 let data_user = localStorage.getItem("data_users") ? JSON.parse(localStorage.getItem("data_users")) : [];
 function load_page()
@@ -30,9 +31,6 @@ function load_page()
             <td>${users.gioitinh}</td>
             <td><button onclick="delete_item(${index})">Xoá</button>
                 <button onclick="edit_item(${index})">Sửa</button>
-                <button onclick="filter_nam()">Lọc Nam</button>
-                <button onclick="filter_nu()">Lọc Nữ</button>
-                <button onclick="load_page()">Tất cả</button></td>
         </tr>
         `;
     });
@@ -109,15 +107,11 @@ function filter_nam(){
                     <td>${users.gioitinh}</td>
                     <td><button onclick="delete_item(${index})">Xoá</button>
                     <button onclick="edit_item(${index})">Sửa</button>
-                    <button onclick="filter_nam()">Lọc Nam</button>
-                    <button onclick="filter_nu()">Lọc Nữ</button>
-                    <button onclick="load_page()">Tất cả</button></td>
                 </tr>
                 `;
             }
         
     });
-
     table_main.innerHTML = block_data;
 }
 function filter_nu(){
@@ -141,14 +135,10 @@ function filter_nu(){
                     <td>${users.gioitinh}</td>
                     <td><button onclick="delete_item(${index})">Xoá</button>
                     <button onclick="edit_item(${index})">Sửa</button>
-                    <button onclick="filter_nam()">Lọc Nam</button>
-                    <button onclick="filter_nu()">Lọc Nữ</button>
-                    <button onclick="load_page()">Tất cả</button></td>
                 </tr>
                 `;
             }
         
     });
-
     table_main.innerHTML = block_data;
 }
