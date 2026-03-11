@@ -10,16 +10,16 @@
 <body>
     <div id="home_page">
         <div id="menu">
-            <img src="../asset/img/logo_page.jpg" alt="" class="logo_page">
+            <a href=""><img src="../asset/img/logo_page.jpg" alt="" class="logo_page"></a>
             <i class="material-icons">menu</i>
         </div>
         <div id="content_page">
             <h1 class="text_center">My List</h1>
             <div id="content_block">
-                <div class="block_content content_all">
+                <div class="block_content content_all" id="block_fisrt">
                     <i class="material-icons">apps</i>
                     <p>All Tasks</p>
-                    <p class="number_of_task"><i class="material-icons size_point">brightness_1</i></p>
+                    <p class="number_of_task"><i class="material-icons size_point" onclick="delete_block_task()">delete</i></p>
                 </div>
                 <div class="block_content">
                     <i class="material-icons" onclick="add_task()">add</i>
@@ -29,7 +29,13 @@
         <div id="add_tasks">
             <h3>Add Task</h3>
             <input type="text" placeholder="Enter task name" id="input_task_name">
-            <button id="add_task_btn">Add Task</button>
+            <button id="add_task_btn" onclick="add_block_tasks()">Add Task</button>
+            <div id="select_color">
+                <div class="color-block color_1" onclick="select_color_1()"></div>
+                <div class="color-block color_2" onclick="select_color_2()"></div>
+                <div class="color-block color_3" onclick="select_color_3()"></div>
+                <div class="color-block color_4" onclick="select_color_4()"></div>
+            </div>
         </div>
         <div id="over_load" onclick="add_task()">
             <!-- Noi dung trong -->
