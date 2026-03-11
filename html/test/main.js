@@ -29,7 +29,10 @@ function load_page()
             <td>${users.age}</td>
             <td>${users.gioitinh}</td>
             <td><button onclick="delete_item(${index})">Xoá</button>
-                <button onclick="edit_item(${index})">Sửa</button></td>
+                <button onclick="edit_item(${index})">Sửa</button>
+                <button onclick="filter_nam()">Lọc Nam</button>
+                <button onclick="filter_nu()">Lọc Nữ</button>
+                <button onclick="load_page()">Tất cả</button></td>
         </tr>
         `;
     });
@@ -51,7 +54,6 @@ function add_data()
     if(index_tt === -1)
     {
         data_user.push({
-            index: index_tt,
             name: nametoi.value,
             age : age.value,
             gioitinh: check_gioi_tinh
@@ -85,4 +87,68 @@ function edit_item(index)
     }else{
         nu.checked = true;
     }
+}
+function filter_nam(){
+    let block_data = `
+        <tr>
+            <th>STT</th>
+            <th>Ho va ten</th>
+            <th>Tuoi</th>
+            <th>Gioitinh</th>
+            <th>Hành động</th>
+        </tr>
+    `;
+    data_user.forEach((users, index) => {
+        if(users.gioitinh === "Nam")
+            {
+                block_data += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${users.name}</td>
+                    <td>${users.age}</td>
+                    <td>${users.gioitinh}</td>
+                    <td><button onclick="delete_item(${index})">Xoá</button>
+                    <button onclick="edit_item(${index})">Sửa</button>
+                    <button onclick="filter_nam()">Lọc Nam</button>
+                    <button onclick="filter_nu()">Lọc Nữ</button>
+                    <button onclick="load_page()">Tất cả</button></td>
+                </tr>
+                `;
+            }
+        
+    });
+
+    table_main.innerHTML = block_data;
+}
+function filter_nu(){
+    let block_data = `
+        <tr>
+            <th>STT</th>
+            <th>Ho va ten</th>
+            <th>Tuoi</th>
+            <th>Gioitinh</th>
+            <th>Hành động</th>
+        </tr>
+    `;
+    data_user.forEach((users, index) => {
+        if(users.gioitinh === "Nữ")
+            {
+                block_data += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${users.name}</td>
+                    <td>${users.age}</td>
+                    <td>${users.gioitinh}</td>
+                    <td><button onclick="delete_item(${index})">Xoá</button>
+                    <button onclick="edit_item(${index})">Sửa</button>
+                    <button onclick="filter_nam()">Lọc Nam</button>
+                    <button onclick="filter_nu()">Lọc Nữ</button>
+                    <button onclick="load_page()">Tất cả</button></td>
+                </tr>
+                `;
+            }
+        
+    });
+
+    table_main.innerHTML = block_data;
 }
