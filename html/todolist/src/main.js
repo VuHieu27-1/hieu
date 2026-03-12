@@ -26,7 +26,7 @@ function renderBlocks() {
     data.forEach((task, index) => {
         blocksHtml += `
             <div class="block_content content_all" style="background:${task.color};">
-                <i class="material-icons">assignment</i>
+                <a href="./page_task"><i class="material-icons">assignment</i></a>
                 <p>${task.name}</p>
                 <p class="number_of_task"><i class="material-icons size_point" onclick="delete_block_task(${index})">delete</i></p>
             </div>
@@ -96,5 +96,4 @@ function delete_block_task(index) {
     localStorage.setItem("info_content_block", JSON.stringify(data));
     renderBlocks();
 }
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//////////////////////////////////////ACTION_PAGE_TASK///////////////////////////////////////////////

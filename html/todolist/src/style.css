@@ -213,3 +213,37 @@ body{
         margin: 20px auto;
     }
 }
+/* ==================================set_style_page_task=============================== */
+#task_assignment
+{
+    text-align: center;
+    height: 100vh;
+}
+#task_assignment h1{
+    padding-top: 80px;
+    font-size: 60px;
+    color: var(--color_main);
+    margin: 0;
+}
+#content_search_bar{
+    text-align: center;
+}
+#buttom_add
+{
+    height: 60px;
+    width: 50%;
+    margin-bottom: 20px;
+    border: 2px solid black;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    bottom: 5px;
+    border-radius: 20px;
+    color: var(--color_main);
+    position: fixed;
+}
+#buttom_add i{
+    font-size: 30px;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+}
