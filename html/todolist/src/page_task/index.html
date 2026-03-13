@@ -20,22 +20,21 @@
                     <h3>Priority Level</h3>
                 </div>
                 <div class="filter_priority">
-                    <h4>All</h4>
-                    <h4>Incomplete</h4>
-                    <h4>Complete</h4>
+                    <h4 onclick="load_origin()">All</h4>
+                    <h4 onclick="filter_incomplete()">Incomplete</h4>
+                    <h4 onclick="filter_success()">Complete</h4>
                 </div>
                 <div class="list_task_bar">
-                    
-                </div>
+
+                </div>  
             </div>
         </div>
-        <div id="content_search_bar">
-            <div id="buttom_add">
+        <div id="content_search_bar" tabindex="1">
+            <div id="buttom_add">               
                 <input type="text" id="search_bar">
                 <i class="material-icons" onclick="add_item_task()">add</i>
             </div>
         </div>
-
     </div>
     <script src="main.js"></script>
 </body>

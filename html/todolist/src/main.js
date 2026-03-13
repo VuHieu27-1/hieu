@@ -2,12 +2,14 @@ const content_block = document.querySelector('#content_block');
 const content_block_all = document.querySelector('.content_all');
 const block_end = document.querySelector('#block_fisrt');
 const input_task_name = document.querySelector('#input_task_name');
+const add_tasks = document.querySelector('#add_tasks');
 let data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
 let color1 = "linear-gradient(135deg,  rgba(238, 251, 255, 0.8), rgba(99, 247, 239, 0.9) )";
 let color2 = "linear-gradient(180deg,  rgba(157, 243, 186, 0.5), rgba(42, 168, 95, 0.6) )";
 let color3 = "linear-gradient(155deg,  rgba(238, 181, 143, 0.5), rgba(233, 187, 37, 0.6) )";
 let color4 = "linear-gradient(135deg,  rgba(255, 171, 171, 0.7), rgba(201, 26, 99, 0.8) )";
-let color_choose = "linear-gradient(155deg,  rgba(238, 181, 143, 0.5), rgba(233, 187, 37, 0.6) )";
+let color_choose = "white";
+// let input_save = localStorage.getItem("input_tasks") ? JSON.parse(localStorage.getItem("input_tasks")) : [];
 function add_task() {
     let add_tasks = document.querySelector('#add_tasks');
     let over_load = document.querySelector('#over_load');
@@ -48,6 +50,13 @@ function select_color_1(){
     document.querySelector('.color_4').classList.remove("effect_block");
     color_choose = color1;
 }
+document.querySelector('.color_1').addEventListener("keydown", function(event)
+{
+    if(event.key == "Enter")
+    {
+        select_color_1();
+    }
+});
 function select_color_2(){
     document.querySelector('.color_2').classList.toggle("effect_block");
     document.querySelector('.color_1').classList.remove("effect_block");
@@ -55,6 +64,13 @@ function select_color_2(){
     document.querySelector('.color_4').classList.remove("effect_block");
     color_choose = color2;
 }
+document.querySelector('.color_2').addEventListener("keydown", function(event)
+{
+    if(event.key == "Enter")
+    {
+        select_color_2();
+    }
+});
 function select_color_3(){
     document.querySelector('.color_3').classList.toggle("effect_block");
     document.querySelector('.color_2').classList.remove("effect_block");
@@ -62,6 +78,13 @@ function select_color_3(){
     document.querySelector('.color_4').classList.remove("effect_block");
     color_choose = color3;
 }
+document.querySelector('.color_3').addEventListener("keydown", function(event)
+{
+    if(event.key == "Enter")
+    {
+        select_color_3();
+    }
+});
 function select_color_4(){
     document.querySelector('.color_4').classList.toggle("effect_block");
     document.querySelector('.color_1').classList.remove("effect_block");
@@ -69,6 +92,13 @@ function select_color_4(){
     document.querySelector('.color_3').classList.remove("effect_block");
     color_choose = color4;
 }
+document.querySelector('.color_4').addEventListener("keydown", function(event)
+{
+    if(event.key == "Enter")
+    {
+        select_color_4();
+    }
+});
 function add_block_tasks() {
     const taskName = input_task_name.value;
     let check_choose_color = false;
@@ -78,19 +108,35 @@ function add_block_tasks() {
         check_choose_color = true; 
     }
     if (taskName !== "" && check_choose_color) {
+        // input_save.push({
+        //     input_task: taskName
+        // });
         data.push({
             name: taskName,
             color: color_choose 
         });
+        // localStorage.setItem("input_tasks", JSON.stringify(input_save));
         localStorage.setItem("info_content_block", JSON.stringify(data));
         renderBlocks();
         input_task_name.value = "";
+        document.querySelector('.color_1').classList.remove("effect_block");
+        document.querySelector('.color_2').classList.remove("effect_block");
+        document.querySelector('.color_3').classList.remove("effect_block");
+        document.querySelector('.color_4').classList.remove("effect_block");
         add_task();
     }else
     {
         alert("Task information is missing.");
     }
+    console.log(input_save);
 }
+add_tasks.addEventListener("keydown", function(event)
+{
+    if(event.key == "Enter")
+    {
+        add_block_tasks();
+    }
+});
 function delete_block_task(index) {
     data.splice(index, 1); 
     localStorage.setItem("info_content_block", JSON.stringify(data));

@@ -28,13 +28,13 @@
         </div>
         <div id="add_tasks">
             <h3>Add Task</h3>
-            <input type="text" placeholder="Enter task name" id="input_task_name">
+            <input type="text" placeholder="Enter task name" id="input_task_name" tabindex="1">
             <button id="add_task_btn" onclick="add_block_tasks()">Add Task</button>
             <div id="select_color">
-                <div class="color-block color_1" onclick="select_color_1()"></div>
-                <div class="color-block color_2" onclick="select_color_2()"></div>
-                <div class="color-block color_3" onclick="select_color_3()"></div>
-                <div class="color-block color_4" onclick="select_color_4()"></div>
+                <div class="color-block color_1" onclick="select_color_1()" tabindex="2"></div>
+                <div class="color-block color_2" onclick="select_color_2()" tabindex="3"></div>
+                <div class="color-block color_3" onclick="select_color_3()" tabindex="4"></div>
+                <div class="color-block color_4" onclick="select_color_4()" tabindex="5"></div>
             </div>
         </div>
         <div id="over_load" onclick="add_task()">
