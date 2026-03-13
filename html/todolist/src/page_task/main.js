@@ -61,11 +61,10 @@ function add_item_task(){
     console.log()
     if(search_bar.value !== "" && index_tt == -1)
     {
-        tick_success_tasks.checked = false;
         data_text_item.push({
             content: search_bar.value,
             color: color_edit,
-            checked_success: tick_success_tasks.checked
+            checked_success: false
         })
         localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
         load_data();
