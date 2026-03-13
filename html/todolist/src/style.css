@@ -391,6 +391,9 @@ body{
     margin-top: 0;
 }
 .text_item_task_bar h3{
+    width: 50vh;
+    overflow: scroll;
+    scrollbar-width: none;
     margin-bottom: 5px;
 }
 .open_setting_item_bar
