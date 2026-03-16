@@ -3,7 +3,6 @@ const content_block_all = document.querySelector('.content_all');
 const block_end = document.querySelector('#block_fisrt');
 const input_task_name = document.querySelector('#input_task_name');
 const add_tasks = document.querySelector('#add_tasks');
-// localStorage.removeItem("info_content_block");
 var data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
 let color1 = "linear-gradient(135deg,  rgba(238, 251, 255, 0.8), rgba(99, 247, 239, 0.9) )";
 let color2 = "linear-gradient(180deg,  rgba(157, 243, 186, 0.5), rgba(42, 168, 95, 0.6) )";
@@ -25,18 +24,6 @@ function renderBlocks() {
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
     `;
-<<<<<<< HEAD
-    data.forEach((task, index) => {
-        blocksHtml += `
-            <div class="block_content content_all" style="background:${task.color};">
-                <a href="./page_task/index.html?id=${index}""><i class="material-icons">assignment</i></a>
-                <p>${task.name}</p>
-                <p class="number_of_task"><i class="material-icons size_point" onclick="delete_block_task(${index})">delete</i></p>
-            </div>
-        `;
-    });
-=======
->>>>>>> 4646ba9c5500f0be0b7caf9a31e067020cce41e2
     blocksHtml += `
         <div class="block_content">
             <i class="material-icons" onclick="add_task()">add</i>
@@ -45,9 +32,9 @@ function renderBlocks() {
     data.forEach((task, index) => {
         blocksHtml += `
             <div class="block_content content_all" style="background:${task.color};">
-                <a href="./page_task"><i class="material-icons">assignment</i></a>
+                <a href="./page_task/index.html?id=${index}"><i class="material-icons">assignment</i></a>
                 <p>${task.name}</p>
-                <i class="material-icons size_point" onclick="delete_block_task()">delete</i>
+                <i class="material-icons size_point" onclick="delete_block_task(${index})">delete</i>
             </div>
         `;
     });

@@ -23,9 +23,8 @@ let month = today.getMonth()+1;
 let year = today.getFullYear();
 let color_edit = "white";
 // localStorage.removeItem("data_item_work");
-let storage = localStorage.getItem("info_content_block");
-
-data[sub_task].sub_task = storage ? JSON.parse(storage) : [];
+var data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
+data[sub_task].subtask = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
 // console.log(data[sub_task].subtask);
 function load_origin()
 {
