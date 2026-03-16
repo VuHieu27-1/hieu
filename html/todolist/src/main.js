@@ -3,6 +3,7 @@ const content_block_all = document.querySelector('.content_all');
 const block_end = document.querySelector('#block_fisrt');
 const input_task_name = document.querySelector('#input_task_name');
 const add_tasks = document.querySelector('#add_tasks');
+// localStorage.removeItem("data_item_work");
 var data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
 let color1 = "linear-gradient(135deg,  rgba(238, 251, 255, 0.8), rgba(99, 247, 239, 0.9) )";
 let color2 = "linear-gradient(180deg,  rgba(157, 243, 186, 0.5), rgba(42, 168, 95, 0.6) )";
@@ -18,21 +19,22 @@ function add_task() {
 ///////////////////////////////XU-LY-JSON//////////////////////////////////////////////////////
 function renderBlocks() {
     let blocksHtml = `
-        <div class="block_content content_all" id="block_fisrt">
-            <i class="material-icons">apps</i>
+        <div class="block_content block_content_task content_all" id="block_fisrt">
+            <i class="material-icons"  tabindex="1">apps</i>
             <p>All Tasks</p>
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
     `;
     blocksHtml += `
-        <div class="block_content">
-            <i class="material-icons" onclick="add_task()">add</i>
+        <div class="block_content block_content_task">
+            <i class="material-icons" onclick="add_task()"  tabindex="2">add</i>
         </div>
     `;
     data.forEach((task, index) => {
+        console.log(`${task.name}: ${task.status_success_tasks}`);
         blocksHtml += `
             <div class="block_content content_all" style="background:${task.color};">
-                <a href="./page_task/index.html?id=${index}"><i class="material-icons">assignment</i></a>
+                <a href="./page_task/index.html?id=${index}"><i class="material-icons" tabindex="2 + ${index}">assignment</i></a>
                 <p>${task.name}</p>
                 <i class="material-icons size_point" onclick="delete_block_task(${index})">delete</i>
             </div>
@@ -110,6 +112,9 @@ function add_block_tasks() {
         data.push({
             name: taskName,
             color: color_choose, 
+            status_filter_success: false,
+            status_filter_incomplete: false,
+            status_success_tasks: false,
             subtask:[]
         });
         localStorage.setItem("info_content_block", JSON.stringify(data));

@@ -11,6 +11,12 @@ body{
     margin: 0;
     padding: 0;
 }
+.note{
+    font-family: var(--fontchuchung);
+    opacity: 0.5;
+    font-size: 20px;
+    margin: 0;
+}
 #home_page{
     min-height:100vh;
     background: linear-gradient(180deg, rgba(255,214,231,0.5), rgba(255,194,220,0.9));
@@ -21,17 +27,22 @@ body{
     left: 0;
     padding: 20px;
 }
+#menu p{
+    color: var(--color_main);
+    width: 500px;
+    font-weight: 700;
+    font-family: var(--fontchuchung);
+    position: absolute;
+    top: 40px;
+    margin: 0;
+    padding-left: 20px;
+    font-size: 60px;
+    display: inline-block;
+}
 .logo_page{
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
-}
-#menu i{
-    position: fixed;
-    right: 20px;
-    color: var(--color_main);
-    font-size: 50px;
-    cursor: pointer;
+    width: 45px;
+    height: 45px;
 }
 .text_center{
     font-size: 90px;
@@ -47,9 +58,10 @@ body{
     text-align: center;
 }
 #content_block{
+    margin-bottom: 50px;
     display:inline-block;
     text-align: center;
-    width: min(700px, 90%);
+    width: min(1500px, 90%);
     height: 100%;
 }              
 .block_content{
@@ -62,6 +74,9 @@ body{
     border: 2px solid #ffffff;
     box-shadow: 0px 0px 10px rgba(170, 88, 88, 0.9);
     background: linear-gradient(135deg, rgba(160, 249, 255, 0.5), rgba(255, 255, 255, 0.6));
+}
+.block_content_task{
+    transform: translateY(-50px);
 }
 .block_content i{
     background: rgba(24, 186, 197, 0.3);
@@ -295,11 +310,6 @@ body{
         height: 50px;
     }
 }
-@media (max-width: 600px) {
-    #task_assignment{
-        height: 100%;
-    }
-}
 .filter_priority{
     top: 10px;
     right: 10px;
@@ -391,7 +401,7 @@ body{
     margin-top: 0;
 }
 .text_item_task_bar h3{
-    width: 50vh;
+    width: 100%;
     overflow: scroll;
     scrollbar-width: none;
     margin-bottom: 5px;
@@ -439,4 +449,29 @@ body{
     background: var(--background_color);
     border: none;
     display: block;
+}
+@media (max-width: 600px) {
+    .text_priority h3{
+        visibility: hidden;
+    }
+    #task_assignment{
+        height: 100%;
+    }
+    .item_task_bar i{
+        padding: 10px;
+    }
+    .item_task_bar .icon_setting_item{
+        right: 10px;
+        top: 20px
+    }
+    .text_item_task_bar h3{
+        height: 30px;
+    }
+    .item_task_bar .text_item_task_bar{
+        left: 110px;
+        top: -5px;
+    }
+    .icon_edit_item{
+        right: -15px;
+    }
 }

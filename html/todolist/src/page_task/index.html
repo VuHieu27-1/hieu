@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <title>WORKS</title>
+    <title></title>
 </head>
 <body>
     <div id="home_page">
         <div id="menu">
-            <a href="../index.html"><img src="../../asset/img/logo_page.jpg" alt="" class="logo_page"></a>
-            <i class="material-icons">menu</i>
+            <a href="../index.html"><p>H<img src="../../asset/img/logo_page.jpg" alt="" class="logo_page" title="HOME">ME</p></a>
         </div>
         <div id="task_assignment">
             <h1 id="text"></h1>
@@ -20,16 +19,16 @@
                     <h3>Priority Level</h3>
                 </div>
                 <div class="filter_priority">
-                    <h4 onclick="load_origin()">All</h4>
-                    <h4 onclick="filter_incomplete()">Incomplete</h4>
-                    <h4 onclick="filter_success()">Complete</h4>
+                    <h4 onclick="load_origin()" tabindex="1">All</h4>
+                    <h4 onclick="filter_incomplete()" tabindex="2">Incomplete</h4>
+                    <h4 onclick="filter_success()" tabindex="3">Complete</h4>
                 </div>
                 <div class="list_task_bar">
 
                 </div>  
             </div>
         </div>
-        <div id="content_search_bar" tabindex="1">
+        <div id="content_search_bar" tabindex="4">
             <div id="buttom_add">               
                 <input type="text" id="search_bar">
                 <i class="material-icons" onclick="add_item_task()">add</i>
