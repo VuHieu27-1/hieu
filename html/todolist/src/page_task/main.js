@@ -113,6 +113,9 @@ function delete_item_task(index)
         data_text_item.splice(index,1);
         localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
         load_data();
+    }else
+    {
+        alert("Please finish the current action before starting another.");
     }
     action_delete = false;
 }
@@ -126,6 +129,9 @@ function edit_item_task(index)
         search_bar.value = data_text_item[index].content;
         localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
         load_data();
+    }else
+    {
+        alert("Please finish the current action before starting another.");
     }
 }
 load_data();

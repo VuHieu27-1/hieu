@@ -25,6 +25,7 @@ function renderBlocks() {
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
     `;
+<<<<<<< HEAD
     data.forEach((task, index) => {
         blocksHtml += `
             <div class="block_content content_all" style="background:${task.color};">
@@ -34,11 +35,22 @@ function renderBlocks() {
             </div>
         `;
     });
+=======
+>>>>>>> 4646ba9c5500f0be0b7caf9a31e067020cce41e2
     blocksHtml += `
         <div class="block_content">
             <i class="material-icons" onclick="add_task()">add</i>
         </div>
     `;
+    data.forEach((task, index) => {
+        blocksHtml += `
+            <div class="block_content content_all" style="background:${task.color};">
+                <a href="./page_task"><i class="material-icons">assignment</i></a>
+                <p>${task.name}</p>
+                <i class="material-icons size_point" onclick="delete_block_task()">delete</i>
+            </div>
+        `;
+    });
     content_block.innerHTML = blocksHtml;
 }
 

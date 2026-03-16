@@ -93,7 +93,10 @@ body{
     transition: 0.3s;
 }
 .content_all p{
+    overflow: scroll;
+    scrollbar-width: none;
     transform: translateY(40px);
+    height: 33px;
     margin: 0;
     font-weight: 700;
     font-size: 25px;
@@ -102,7 +105,7 @@ body{
 }
 .size_point{
     transform: translateY(10px) !important;
-    margin: 0 !important;
+    margin: 55px !important;
     padding: 0 !important;
     background-color: transparent !important;
     font-size: 30px !important;
@@ -388,6 +391,9 @@ body{
     margin-top: 0;
 }
 .text_item_task_bar h3{
+    width: 50vh;
+    overflow: scroll;
+    scrollbar-width: none;
     margin-bottom: 5px;
 }
 .open_setting_item_bar
