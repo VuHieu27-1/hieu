@@ -1,3 +1,9 @@
+// =============================SUB_TASK_ID==========================////////
+let params = new URLSearchParams(window.location.search);
+let sub_task = params.get("id");
+console.log(sub_task);
+var data;
+//========================================================//////////////////
 const works_text = document.title;
 const display_text = document.querySelector("#text");
 let sodem = 0;
@@ -17,7 +23,10 @@ let month = today.getMonth()+1;
 let year = today.getFullYear();
 let color_edit = "white";
 // localStorage.removeItem("data_item_work");
-let data_text_item = localStorage.getItem("data_item_work") ? JSON.parse(localStorage.getItem("data_item_work")) : [];
+let storage = localStorage.getItem("info_content_block");
+
+data[sub_task].sub_task = storage ? JSON.parse(storage) : [];
+// console.log(data[sub_task].subtask);
 function load_origin()
 {
     index_tt = -1;
@@ -27,12 +36,12 @@ function load_origin()
 function load_data()
 {
     let block_text_item = ``;
-    data_text_item.forEach((tasks,index) => {
+    data[sub_task].subtask.forEach((tasks,index) => {
         let icon_success = tasks.checked_success ? "success_list_task" : "";
         let icon_work = tasks.checked_success ? "remove_works_tasks" : "";
         if(index_tt != index)
         {
-            data_text_item[index].color = "white";
+            data[sub_task].subtask[index].color = "white";
         }
         
         block_text_item += 
@@ -66,7 +75,7 @@ function add_item_task(){
             color: color_edit,
             checked_success: false
         })
-        localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
+        localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
         load_data();
         search_bar.value = "";
     }else if(index_tt != -1 && search_bar.value !== "")
@@ -74,7 +83,7 @@ function add_item_task(){
        data_text_item[index_tt].content = search_bar.value;
        data_text_item[index_tt].color = "white";
        index_tt = -1;
-       localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
+       localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
        load_data();
        search_bar.value = "";
        action_edit = false;
@@ -102,7 +111,7 @@ function delete_item_task(index)
     {
         action_delete = true;
         data_text_item.splice(index,1);
-        localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
+        localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
         load_data();
     }
     action_delete = false;
@@ -115,7 +124,7 @@ function edit_item_task(index)
         data_text_item[index].color = "linear-gradient(135deg, rgba(157, 245, 153, 0.7), rgba(193, 240, 175, 0.5))";
         index_tt = index;
         search_bar.value = data_text_item[index].content;
-        localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
+        localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
         load_data();
     }
 }
@@ -124,13 +133,13 @@ load_data();
 function click_success_task(index)
 {
     data_text_item[index].checked_success = true;
-    localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
+    localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
     load_data();
 }
 function click_refresh_task(index)
 {
     data_text_item[index].checked_success = false;
-    localStorage.setItem("data_item_work", JSON.stringify(data_text_item));
+    localStorage.setItem("info_content_block", JSON.stringify(data_text_item));
     load_data();
 }
 /////==================================================FILTER_Complete===============================//////////////////////////////////////////////////////
