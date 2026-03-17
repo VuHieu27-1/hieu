@@ -32,23 +32,29 @@ function load_origin()
     index_tt = -1;
     search_bar.value = "";
     load_data();
+}
+function check_status_success_task(){
+    for(let element of data[sub_task].subtask)
+    {
+    console.log(element.checked_success);
+    if(element.checked_success == false)
+    {
+        console.log(element.content);
+        data[sub_task].status_success_tasks = false;
+        localStorage.setItem("info_content_block", JSON.stringify(data));
+        return;
+    }else
+    {
+        console.log(element.content);
+        data[sub_task].status_success_tasks = true;
+    }
+    }
+    localStorage.setItem("info_content_block", JSON.stringify(data));
+    console.log(data[sub_task].status_success_tasks);
 } 
+
 function load_data()
 {
-    console.log(data[sub_task].subtask);
-        if(data[sub_task].subtask.length == 0)
-        {
-            data[sub_task].status_success_tasks = true;
-        }
-    localStorage.setItem("info_content_block", JSON.stringify(data));
-    data[sub_task].subtask.forEach(element => {
-        if(element.checked_success == false)
-        {
-            console.log(element.content);
-            data[sub_task].status_success_tasks = true;
-        }
-        localStorage.setItem("info_content_block", JSON.stringify(data));
-    });
     data[sub_task].status_filter_incomplete = false;
     data[sub_task].status_filter_success = false;
     let block_text_item = ``;
@@ -181,12 +187,14 @@ function click_success_task(index)
 {
     data[sub_task].subtask[index].checked_success = true;
     localStorage.setItem("info_content_block", JSON.stringify(data));
+    check_status_success_task();
     load_data();
 }
 function click_refresh_task(index)
 {
     data[sub_task].subtask[index].checked_success = false;
     localStorage.setItem("info_content_block", JSON.stringify(data));
+    check_status_success_task();
     load_data();
 }
 /////==================================================FILTER_Complete===============================//////////////////////////////////////////////////////

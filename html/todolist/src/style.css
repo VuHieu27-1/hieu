@@ -22,7 +22,7 @@ body{
     background: linear-gradient(180deg, rgba(255,214,231,0.5), rgba(255,194,220,0.9));
 }
 #menu{
-    position: fixed;
+    position: relative;
     top: 0;
     left: 0;
     padding: 20px;
@@ -95,12 +95,34 @@ body{
 }
 .content_all{
     background: linear-gradient(135deg, rgba(248, 247, 191, 0.5), rgba(228, 245, 132, 0.6));
+    position: relative;
 }
 .content_all i{
     transform: translateY(30px);
     margin: 0;
     background: rgba(255, 255, 255, 0.4);
 }
+
+#status_icon_success{
+    position: absolute;
+    left: 55px;
+    visibility: hidden;
+}
+#status_icon_success:hover{
+    background: rgba(57, 58, 1, 0.4);
+    opacity: 0.5;
+    transition: 0.3s;
+}
+.add_status_icon_work
+{
+    visibility: hidden;
+}
+.add_status_icon_success{
+    background-color: rgb(196, 243, 178) !important;
+    color: rgb(29, 156, 13) !important;
+    visibility: visible !important;
+}
+
 .content_all i:hover{
     background: rgba(57, 58, 1, 0.4);
     opacity: 0.5;

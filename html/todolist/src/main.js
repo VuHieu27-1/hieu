@@ -34,7 +34,8 @@ function renderBlocks() {
         console.log(`${task.name}: ${task.status_success_tasks}`);
         blocksHtml += `
             <div class="block_content content_all" style="background:${task.color};">
-                <a href="./page_task/index.html?id=${index}"><i class="material-icons" tabindex="2 + ${index}">assignment</i></a>
+                <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_work">assignment</i></a>
+                <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_success">done_outline</i></a>
                 <p>${task.name}</p>
                 <i class="material-icons size_point" onclick="delete_block_task(${index})">delete</i>
             </div>
@@ -42,7 +43,6 @@ function renderBlocks() {
     });
     content_block.innerHTML = blocksHtml;
 }
-
 renderBlocks();
 function select_color_1(){
     document.querySelector('.color_1').classList.toggle("effect_block");
@@ -143,3 +143,21 @@ function delete_block_task(index) {
     renderBlocks();
 }
 //////////////////////////////////////ACTION_PAGE_TASK///////////////////////////////////////////////
+change_status_tasks();
+function change_status_tasks()
+{
+    let status_icon_work = document.querySelector('#status_icon_work');
+    let status_icon_success = document.querySelector('#status_icon_success');
+    data.forEach((task) => {
+    console.log(`${task.name}: ${task.status_success_tasks}`);
+    if(task.status_success_tasks == true)
+    {
+        status_icon_work.classList.add('add_status_icon_work');
+        status_icon_success.classList.add('add_status_icon_success');
+    }else
+    {
+        status_icon_work.classList.remove('add_status_icon_work');
+        status_icon_success.classList.remove('add_status_icon_success');
+    }
+    });
+}
