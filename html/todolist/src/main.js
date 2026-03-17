@@ -143,7 +143,9 @@ function delete_block_task(index) {
     renderBlocks();
 }
 //////////////////////////////////////ACTION_PAGE_TASK///////////////////////////////////////////////
-change_status_tasks();
+setInterval(() => {
+    change_status_tasks();
+},300);
 function change_status_tasks()
 {
     let status_icon_work = document.querySelector('#status_icon_work');

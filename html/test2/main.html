@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #container{
+            display: grid;
+            grid-template-columns: 1fr 5fr;
+        }
+        .menu{
+            grid-column: 1/3;
+            background-color: aqua;
+            width: 100%;
+            height: 100px;
+        }
+        .slide{
+            grid-column: 1/2;
+            background-color: rgb(100, 15, 68);
+            width: 100%;
+            height: 200px;
+        }
+        .main-content{
+            grid-column: 2/3;
+            display: grid;
+            grid-template-columns: 4fr 1fr;
+            background-color: rgb(200, 255, 0);
+            width: 100%;
+            height: fit-content;
+        }
+        .Footer{
+            grid-column: 1/3;
+            background-color: rgb(0, 255, 76);
+            width: 100%;
+            height: 200px;
+        }
+        .content{
+            grid-column: 1/2;
+            background-color: azure;
+            width: 100%;
+            height: 500px;
+        }
+        .ad{
+            grid-column: 2/3;
+            background-color: rgb(240, 9, 9);
+            width: 100%;
+            height: 100px;
+        }
+        .Nam{
+            grid-column: 1/3;
+            background-color: rgb(52, 22, 100);
+            width: 100%;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="menu">Menu</div>
+        <div class="slide">Slide bar left</div>
+        <div class="main-content">
+            <div class="content">content</div>
+            <div class="ad">AD</div>
+            <div class="Nam">Ad</div>
+        </div>
+        <div class="Footer">Footer</div>
+    </div>
+</body>
+</html>
