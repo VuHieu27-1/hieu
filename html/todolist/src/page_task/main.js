@@ -57,6 +57,9 @@ function load_data()
 {
     data[sub_task].status_filter_incomplete = false;
     data[sub_task].status_filter_success = false;
+    incomplete.classList.remove("filter_priority_status");
+    complete.classList.remove("filter_priority_status");
+    all.classList.add("filter_priority_status");
     let block_text_item = ``;
     data[sub_task].subtask.forEach((tasks,index) => {
          
@@ -94,9 +97,13 @@ function load_data()
     localStorage.setItem("info_content_block", JSON.stringify(data));
 } 
 // load_data();
+let incomplete = document.querySelector('#incomplete');
+let complete = document.querySelector('#complete');
+let all = document.querySelector('#all');
 if(data[sub_task].status_filter_incomplete == true && data[sub_task].status_filter_success ==false)
 {
     filter_incomplete();
+
 }else if(data[sub_task].status_filter_incomplete == false && data[sub_task].status_filter_success == true){
     filter_success();
 }else{
@@ -202,6 +209,9 @@ function filter_success()
 {
     data[sub_task].status_filter_success = true;
     data[sub_task].status_filter_incomplete = false;
+    incomplete.classList.remove("filter_priority_status");
+    complete.classList.add("filter_priority_status");
+    all.classList.remove("filter_priority_status");
     let block_text_item = ``;
     data[sub_task].subtask.forEach((tasks,index) => {
     if(tasks.checked_success == true){
@@ -242,9 +252,11 @@ function filter_incomplete()
 {
     data[sub_task].status_filter_incomplete = true;
     data[sub_task].status_filter_success = false;
+    incomplete.classList.add("filter_priority_status");
+    complete.classList.remove("filter_priority_status");
+    all.classList.remove("filter_priority_status");
     let block_text_item = ``;
     data[sub_task].subtask.forEach((tasks,index) => {
-
     if(tasks.checked_success == false){
         let icon_success = "";
         let icon_work = "";
@@ -277,3 +289,4 @@ function filter_incomplete()
 list_task_bar.innerHTML = block_text_item;
 localStorage.setItem("info_content_block", JSON.stringify(data));
 }
+///////////////////=====================================================/////////////////////////////
