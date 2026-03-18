@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Book Your Buggy</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="app-shell app-booking">
+    <div class="ambient ambient-booking"></div>
+
+    <main class="booking-page">
+        <header class="booking-topbar">
+            <div class="brand-lockup brand-lockup-compact">
+                <img src="/img/d-soft-logo.png" alt="D-Soft logo" class="brand-logo brand-logo-compact">
+                <span class="eyebrow">Smart booking</span>
+            </div>
+            <button id="theme-toggle" type="button" class="theme-toggle secondary-btn" aria-label="Toggle theme">
+                <span id="theme-toggle-text">Dark mode</span>
+            </button>
+        </header>
+
+        <section class="booking-hero">
+            <div>
+                <h1 class="booking-title">D-Soft Buggy Booking</h1>
+                <p class="booking-subtitle">Fast booking, clear confirmation, branded for D-Soft operations.</p>
+            </div>
+
+            <div class="booking-meta">
+                <div class="booking-meta-item">
+                    <span class="booking-meta-label">Pickup point</span>
+                    <strong id="pickup-label-display">Enter on form</strong>
+                </div>
+                <div class="booking-meta-item">
+                    <span class="booking-meta-label">Area / Location</span>
+                    <strong id="location-label-display">Enter on form</strong>
+                </div>
+                <div class="booking-meta-item">
+                    <span class="booking-meta-label">Vehicle</span>
+                    <strong id="vehicle-type-display">4 seats</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel booking-form-shell">
+            <div id="context-banner" class="hidden context-banner"></div>
+
+            <form id="booking-form" class="booking-form" novalidate>
+                <label class="form-group">
+                    <span class="form-label">Full Name</span>
+                    <input type="text" id="name" name="name" class="input-field" placeholder="Nguyen Van A" autocomplete="name" required>
+                    <span class="error-text hidden" id="name-error">Please enter your full name.</span>
+                </label>
+
+                <label class="form-group">
+                    <span class="form-label">Phone Number</span>
+                    <input type="tel" id="phone" name="phone" class="input-field" placeholder="0901234567" inputmode="tel" autocomplete="tel" required>
+                    <span class="error-text hidden" id="phone-error">Please enter a valid phone number.</span>
+                </label>
+
+                <div class="time-grid">
+                    <label class="form-group time-card">
+                        <span class="form-label">Start Time</span>
+                        <input type="datetime-local" id="start-time" name="start_time" class="input-field" required>
+                        <span class="error-text hidden" id="start-time-error">Please choose the trip start time.</span>
+                    </label>
+
+                    <label class="form-group time-card">
+                        <span class="form-label">End Time</span>
+                        <input type="datetime-local" id="end-time" name="end_time" class="input-field" required>
+                        <span class="error-text hidden" id="end-time-error">End time must be later than start time.</span>
+                    </label>
+                </div>
+
+                <label class="form-group">
+                    <span class="form-label">Vehicle Type</span>
+                    <select id="vehicle-type" name="vehicle_type" class="input-field" required>
+                        <option value="2_seats">2 seats</option>
+                        <option value="4_seats">4 seats</option>
+                        <option value="6_seats">6 seats</option>
+                        <option value="8_seats">8 seats</option>
+                    </select>
+                    <span class="form-hint">Default is 4 seats.</span>
+                    <span class="error-text hidden" id="vehicle-type-error">Please choose a vehicle type.</span>
+                </label>
+
+                <div class="booking-detail-grid">
+                    <label class="form-group">
+                        <span class="form-label">Pickup Point</span>
+                        <input type="text" id="pickup-location" name="pickup_location" class="input-field" placeholder="Example: Sunset Lobby, Villa A12">
+                        <span class="form-hint">Where should the buggy pick you up?</span>
+                    </label>
+
+                    <label class="form-group">
+                        <span class="form-label">Area / Station</span>
+                        <input type="text" id="location-id" name="location_id" class="input-field" placeholder="Example: Beach Club A, Lobby Zone">
+                        <span class="form-hint">Area, station, or zone to help dispatch.</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="submit-button" class="primary-btn booking-submit">Book Now</button>
+            </form>
+        </section>
+
+        <section class="glass-panel booking-history-shell">
+            <div class="section-heading booking-history-head">
+                <div>
+                    <h2>Booking history</h2>
+                    <p>Open this panel to check recent bookings.</p>
+                </div>
+                <button id="toggle-history-button" type="button" class="secondary-btn">View history</button>
+            </div>
+
+            <div id="history-panel" class="history-panel hidden">
+                <div class="history-input-row">
+                    <label class="form-group history-phone-group">
+                        <span class="form-label">Phone Number</span>
+                        <input type="tel" id="history-phone" class="input-field" placeholder="Enter phone number to view history" inputmode="tel" autocomplete="tel">
+                        <span class="form-hint">This field is only used to look up previous bookings.</span>
+                    </label>
+                    <button id="load-history-button" type="button" class="secondary-btn history-search-btn">Load history</button>
+                </div>
+
+                <div id="history-feedback" class="history-feedback hidden"></div>
+                <div id="booking-history-list" class="booking-history-list">
+                    <article class="history-empty">
+                        <strong>No history loaded yet</strong>
+                        <p>Enter a phone number here to load recent bookings.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="request-overlay" class="request-overlay hidden" aria-live="polite">
+        <div id="request-card" class="request-card is-loading">
+            <div id="request-spinner" class="request-spinner"></div>
+            <div class="request-copy">
+                <p id="request-kicker" class="request-kicker">Sending booking</p>
+                <h2 id="request-title" class="request-title">Waiting for server confirmation</h2>
+                <p id="request-message" class="request-message">Please wait while we send your booking.</p>
+            </div>
+            <p id="request-booking-line" class="request-booking-line hidden">Booking ID: <span id="booking-id"></span></p>
+            <button id="request-action" type="button" class="primary-btn hidden">Done</button>
+        </div>
+    </div>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/booking.js"></script>
+</body>
+</html>

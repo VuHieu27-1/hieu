@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buggy QR Generator</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/qr-code-styling@1.8.3/lib/qr-code-styling.js"></script>
+</head>
+<body class="app-shell app-admin">
+    <div class="ambient ambient-admin"></div>
+
+    <main class="page-wrap">
+        <header class="topbar glass-panel">
+            <div class="brand-block">
+                <div class="brand-lockup">
+                    <img src="/img/d-soft-logo.png" alt="D-Soft logo" class="brand-logo">
+                    <div>
+                        <span class="eyebrow">Buggy Booking QR</span>
+                        <h1 class="page-title">D-Soft Smart Buggy Service</h1>
+                    </div>
+                </div>
+                <p class="page-subtitle">Create a clean booking QR with D-Soft branding.</p>
+            </div>
+
+            <button id="theme-toggle" type="button" class="theme-toggle secondary-btn" aria-label="Toggle theme">
+                <span id="theme-toggle-text">Dark mode</span>
+            </button>
+        </header>
+
+        <section class="admin-layout">
+            <section class="glass-panel admin-config-panel">
+                <div class="section-heading">
+                    <div>
+                        <h2>QR configuration</h2>
+                        <p>Only keep the essentials.</p>
+                    </div>
+                    <button id="reset-config" type="button" class="secondary-btn">Reset</button>
+                </div>
+
+                <div class="config-stack">
+                    <label class="form-group">
+                        <span class="form-label">Base booking URL</span>
+                        <input id="base-url" type="url" class="input-field" placeholder="https://mybuggy.com/booking.html">
+                        <span class="form-hint">Destination page after scan. Guests will enter pickup details on the booking form.</span>
+                    </label>
+
+                    <div class="preset-banner">
+                        <span class="preset-chip">Preset vehicle</span>
+                        <div>
+                            <strong>4 seats</strong>
+                            <p>Applied automatically.</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-card-grid admin-card-grid-visual">
+                        <label class="form-group detail-card">
+                            <span class="form-label">QR color</span>
+                            <input id="qr-color" type="color" class="color-field" value="#2f3541">
+                        </label>
+
+                        <label class="form-group detail-card">
+                            <span class="form-label">Background</span>
+                            <input id="bg-color" type="color" class="color-field" value="#ffffff">
+                        </label>
+
+                        <label class="form-group detail-card">
+                            <span class="form-label">Center logo</span>
+                            <input id="logo" type="file" accept="image/*" class="input-field file:mr-4 file:rounded-full file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-700">
+                            <span class="form-hint">D-Soft logo is applied by default.</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass-panel admin-preview-panel">
+                <div class="section-heading">
+                    <div>
+                        <h2>Scan preview</h2>
+                        <p>Live preview.</p>
+                    </div>
+                    <span id="scan-quality" class="status-pill">Balanced</span>
+                </div>
+
+                <div class="scan-card">
+                    <div class="scan-card-head">
+                        <span class="scan-card-label">Guest Scan QR</span>
+                        <span class="scan-card-badge">4 seats preset</span>
+                    </div>
+
+                    <div class="preview-card preview-card-tight">
+                        <div id="qr-preview" class="qr-preview" aria-label="QR code preview"></div>
+                    </div>
+
+                    <div class="scan-card-details">
+                        <div class="scan-card-detail">
+                            <span class="scan-detail-label">Pickup point</span>
+                            <strong id="summary-pickup">Guest enters</strong>
+                        </div>
+                        <div class="scan-card-detail">
+                            <span class="scan-detail-label">Area / Location</span>
+                            <strong id="summary-location">Guest enters</strong>
+                        </div>
+                        <div class="scan-card-detail">
+                            <span class="scan-detail-label">Vehicle</span>
+                            <strong id="summary-vehicle">4 seats</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-url-card">
+                    <p class="preview-url-label">Generated URL</p>
+                    <p id="generated-url" class="preview-url-value"></p>
+                </div>
+
+                <div class="download-grid">
+                    <button id="download-png" type="button" class="primary-btn">Download PNG</button>
+                    <button id="download-svg" type="button" class="secondary-btn secondary-btn-dark">Download SVG</button>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/qr-generator.js"></script>
+</body>
+</html>

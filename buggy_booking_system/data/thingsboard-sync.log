@@ -1,0 +1,8 @@
+Deprecated log file.
+Use these files instead:
+- data/logs/latest.log
+- data/logs/system-YYYY-MM-DD.log
+
+Use these APIs to inspect logs:
+- /api/system/logs
+- /api/thingsboard/logs
