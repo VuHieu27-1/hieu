@@ -144,7 +144,6 @@ function delete_block_task(index) {
 }
 //////////////////////////////////////ACTION_PAGE_TASK///////////////////////////////////////////////
 setInterval(() => {
-    renderBlocks();
     change_status_tasks();
 },10);
 function change_status_tasks()
