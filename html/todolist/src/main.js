@@ -148,6 +148,7 @@ setInterval(() => {
 },10);
 function change_status_tasks()
 {
+    data = JSON.parse(localStorage.getItem("info_content_block"));
     let status_icon_work = document.querySelector('#status_icon_work');
     let status_icon_success = document.querySelector('#status_icon_success');
     data.forEach((task) => {
