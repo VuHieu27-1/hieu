@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const qrColorInput = document.getElementById('qr-color');
     const bgColorInput = document.getElementById('bg-color');
     const logoInput = document.getElementById('logo');
-    const generatedUrl = document.getElementById('generated-url');
     const qrPreview = document.getElementById('qr-preview');
     const downloadPngButton = document.getElementById('download-png');
     const downloadSvgButton = document.getElementById('download-svg');
@@ -152,17 +151,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderQRCode = ({ force = false } = {}) => {
         const result = buildFinalUrl();
-        generatedUrl.textContent = result.value;
         updatePreviewMeta();
         updateScanQuality();
 
         if (!result.isValid) {
-            generatedUrl.classList.add('text-rose-600');
             setRenderingState(false);
             return;
         }
-
-        generatedUrl.classList.remove('text-rose-600');
 
         const renderSignature = JSON.stringify({
             data: result.value,

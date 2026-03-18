@@ -2,22 +2,9 @@ const fs = require('fs/promises');
 const http = require('http');
 const https = require('https');
 const path = require('path');
-const { createRequire } = require('module');
 const { createLogger } = require('./lib/logger');
-
-const localRequire = createRequire(__filename);
-const legacyRequire = createRequire(path.join(__dirname, 'src', 'package.json'));
-
-const safeRequire = (packageName) => {
-    try {
-        return localRequire(packageName);
-    } catch (error) {
-        return legacyRequire(packageName);
-    }
-};
-
-const express = safeRequire('express');
-const cors = safeRequire('cors');
+const express = require('express');
+const cors = require('cors');
 
 const app = express();
 const DEFAULT_PORT = Number(process.env.PORT || 3000);

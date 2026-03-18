@@ -1,0 +1,15 @@
+services:
+  buggy-booking-system:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: buggy-booking-system
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      THINGSBOARD_URL: ${THINGSBOARD_URL:-https://eu.thingsboard.cloud/entities/devices/all}
+      THINGSBOARD_ACCESS_TOKEN: ${THINGSBOARD_ACCESS_TOKEN:-7rvm1WzxLQz8c3cKdEU0}
+    volumes:
+      - ./data:/app/data
