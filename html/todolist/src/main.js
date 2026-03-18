@@ -145,7 +145,7 @@ function delete_block_task(index) {
 //////////////////////////////////////ACTION_PAGE_TASK///////////////////////////////////////////////
 setInterval(() => {
     change_status_tasks();
-},0);
+},10);
 function change_status_tasks()
 {
     let status_icon_work = document.querySelector('#status_icon_work');

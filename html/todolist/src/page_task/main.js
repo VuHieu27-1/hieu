@@ -204,6 +204,9 @@ function click_refresh_task(index)
     check_status_success_task();
     load_data();
 }
+setInterval(() => {
+    check_status_success_task();
+},500);
 /////==================================================FILTER_Complete===============================//////////////////////////////////////////////////////
 function filter_success()
 {
