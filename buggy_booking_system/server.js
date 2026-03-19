@@ -24,7 +24,13 @@ const logger = createLogger({
 
 let bookings = [];
 let writeQueue = Promise.resolve();
+let bookingQueue = Promise.resolve();
 let requestCounter = 0;
+let nextBookingSequence = 1;
+let pendingBookingJobs = 0;
+const MAX_PENDING_BOOKINGS = Number(process.env.MAX_PENDING_BOOKINGS || 200);
+const IDEMPOTENCY_TTL_MS = Number(process.env.IDEMPOTENCY_TTL_MS || 10 * 60 * 1000);
+const idempotencyStore = new Map();
 let lastThingsBoardSync = {
     success: false,
     at: null,
@@ -66,6 +72,34 @@ const setLastThingsBoardSync = (success, message, details = {}) => {
     };
 };
 
+const parseBookingSequence = (bookingId) => {
+    const parts = String(bookingId || '').split('-');
+    const rawSequence = parts[parts.length - 1];
+    const sequence = Number.parseInt(rawSequence, 10);
+    return Number.isInteger(sequence) ? sequence : 0;
+};
+
+const initializeBookingSequence = () => {
+    nextBookingSequence = bookings.reduce((maxSequence, booking) => {
+        return Math.max(maxSequence, parseBookingSequence(booking.id));
+    }, 0) + 1;
+};
+
+const cleanupExpiredIdempotencyKeys = () => {
+    const now = Date.now();
+
+    for (const [key, entry] of idempotencyStore.entries()) {
+        if (entry.expiresAt <= now) {
+            idempotencyStore.delete(key);
+        }
+    }
+};
+
+const sanitizeIdempotencyKey = (value) => {
+    const key = sanitizeString(value);
+    return key || null;
+};
+
 const ensureStorage = async () => {
     logger.info('Initializing storage directories.', {
         data_dir: DATA_DIR,
@@ -89,10 +123,12 @@ const ensureStorage = async () => {
 
     const raw = await fs.readFile(BOOKINGS_FILE, 'utf8');
     bookings = JSON.parse(raw);
+    initializeBookingSequence();
 
     logger.info('Storage initialized successfully.', {
         bookings_loaded: bookings.length,
-        latest_log_file: logger.getLatestLogPath()
+        latest_log_file: logger.getLatestLogPath(),
+        next_booking_sequence: nextBookingSequence
     });
 };
 
@@ -117,11 +153,97 @@ const persistBookings = async () => {
 
 const generateBookingId = () => {
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const sequence = String(bookings.length + 1).padStart(4, '0');
+    const sequence = String(nextBookingSequence).padStart(4, '0');
+    nextBookingSequence += 1;
     return `BK-${stamp}-${sequence}`;
 };
 
 const sanitizeString = (value) => String(value || '').trim();
+
+const createBookingRecord = (normalized) => ({
+    id: generateBookingId(),
+    name: normalized.name,
+    phone: normalized.phone,
+    start_time: normalized.start_time,
+    end_time: normalized.end_time,
+    vehicle_type: normalized.vehicle_type,
+    location_id: normalized.location_id || null,
+    pickup_location: normalized.pickup_location || null,
+    created_at: new Date().toISOString(),
+    sync_status: 'pending',
+    sync_error: null
+});
+
+const enqueueBookingTask = async (task) => {
+    if (pendingBookingJobs >= MAX_PENDING_BOOKINGS) {
+        const error = new Error('Booking queue is full. Please try again in a moment.');
+        error.code = 'BOOKING_QUEUE_FULL';
+        throw error;
+    }
+
+    pendingBookingJobs += 1;
+
+    const runTask = bookingQueue.then(() => task());
+    bookingQueue = runTask.catch(() => {});
+
+    try {
+        return await runTask;
+    } finally {
+        pendingBookingJobs -= 1;
+    }
+};
+
+const createBookingSafely = async (normalizedBooking, meta = {}) => {
+    return enqueueBookingTask(async () => {
+        const booking = createBookingRecord(normalizedBooking);
+        bookings.push(booking);
+        await persistBookings();
+
+        logger.info('Booking saved locally.', {
+            request_id: meta.request_id,
+            booking_id: booking.id,
+            queue_depth: pendingBookingJobs,
+            customer_name: booking.name,
+            vehicle_type: booking.vehicle_type
+        });
+
+        return booking;
+    });
+};
+
+const updateBookingSyncStatus = async (bookingId, syncStatus, syncError = null) => {
+    const booking = bookings.find((item) => item.id === bookingId);
+
+    if (!booking) {
+        return null;
+    }
+
+    booking.sync_status = syncStatus;
+    booking.sync_error = syncError;
+    booking.synced_at = syncStatus === 'synced' ? new Date().toISOString() : null;
+    await persistBookings();
+
+    return booking;
+};
+
+const getIdempotentBookingResponse = (idempotencyKey) => {
+    cleanupExpiredIdempotencyKeys();
+    const entry = idempotencyStore.get(idempotencyKey);
+
+    if (!entry) {
+        return null;
+    }
+
+    return entry.promise;
+};
+
+const storeIdempotentBookingResponse = (idempotencyKey, promise) => {
+    cleanupExpiredIdempotencyKeys();
+    idempotencyStore.set(idempotencyKey, {
+        promise,
+        expiresAt: Date.now() + IDEMPOTENCY_TTL_MS
+    });
+};
 
 const postJson = (targetUrl, payload, meta = {}) => new Promise((resolve, reject) => {
     const parsedUrl = new URL(targetUrl);
@@ -340,16 +462,14 @@ const validateBooking = (payload) => {
 
     return {
         valid: true,
-        booking: {
-            id: generateBookingId(),
+        normalizedBooking: {
             name: normalized.name,
             phone: normalized.phone,
             start_time: startDate.toISOString(),
             end_time: endDate.toISOString(),
             vehicle_type: normalized.vehicle_type,
             location_id: normalized.location_id || null,
-            pickup_location: normalized.pickup_location || null,
-            created_at: new Date().toISOString()
+            pickup_location: normalized.pickup_location || null
         }
     };
 };
@@ -465,6 +585,7 @@ app.get('/api/thingsboard/logs', async (req, res) => {
 
 app.post('/api/bookings', async (req, res) => {
     const validation = validateBooking(req.body || {});
+    const idempotencyKey = sanitizeIdempotencyKey(req.headers['idempotency-key'] || req.body?.client_request_id);
 
     if (!validation.valid) {
         logger.warn('Booking validation failed.', {
@@ -480,55 +601,113 @@ app.post('/api/bookings', async (req, res) => {
     }
 
     try {
-        const thingsboardResult = await sendBookingToThingsBoard(validation.booking);
+        if (idempotencyKey) {
+            const existingResponse = getIdempotentBookingResponse(idempotencyKey);
 
-        bookings.push(validation.booking);
-        await persistBookings();
+            if (existingResponse) {
+                logger.info('Idempotent booking request reused existing result.', {
+                    request_id: req.requestId,
+                    idempotency_key: idempotencyKey
+                });
 
-        logger.info('Booking created and synced successfully.', {
-            request_id: req.requestId,
-            booking_id: validation.booking.id,
-            customer_name: validation.booking.name,
-            vehicle_type: validation.booking.vehicle_type
-        });
-
-        return res.status(201).json({
-            success: true,
-            message: 'Booking created and synced to ThingsBoard',
-            data: validation.booking,
-            integrations: {
-                thingsboard: {
-                    success: true,
-                    message: 'ThingsBoard accepted the booking.',
-                    telemetry_url: thingsboardResult.telemetry_url,
-                    telemetry_status: thingsboardResult.telemetry_status,
-                    attributes_status: thingsboardResult.attributes_status
-                }
+                const responsePayload = await existingResponse;
+                return res.status(responsePayload.status).json(responsePayload.body);
             }
-        });
-    } catch (error) {
-        setLastThingsBoardSync(false, error.message, {
-            booking_id: validation.booking.id
-        });
+        }
 
+        const bookingPromise = (async () => {
+            const booking = await createBookingSafely(validation.normalizedBooking, {
+                request_id: req.requestId
+            });
+
+            try {
+                const thingsboardResult = await sendBookingToThingsBoard(booking);
+                await updateBookingSyncStatus(booking.id, 'synced', null);
+
+                logger.info('Booking created and synced successfully.', {
+                    request_id: req.requestId,
+                    booking_id: booking.id,
+                    customer_name: booking.name,
+                    vehicle_type: booking.vehicle_type
+                });
+
+                return {
+                    status: 201,
+                    body: {
+                        success: true,
+                        message: 'Booking created and synced to ThingsBoard',
+                        data: {
+                            ...booking,
+                            sync_status: 'synced',
+                            sync_error: null
+                        },
+                        integrations: {
+                            thingsboard: {
+                                success: true,
+                                message: 'ThingsBoard accepted the booking.',
+                                telemetry_url: thingsboardResult.telemetry_url,
+                                telemetry_status: thingsboardResult.telemetry_status,
+                                attributes_status: thingsboardResult.attributes_status
+                            }
+                        }
+                    }
+                };
+            } catch (error) {
+                await updateBookingSyncStatus(booking.id, 'sync_failed', error.message);
+                setLastThingsBoardSync(false, error.message, {
+                    booking_id: booking.id
+                });
+
+                logger.error('Booking sync failed after local save.', {
+                    request_id: req.requestId,
+                    booking_id: booking.id,
+                    error: {
+                        message: error.message,
+                        stack: error.stack
+                    }
+                });
+
+                return {
+                    status: 202,
+                    body: {
+                        success: true,
+                        message: 'Booking saved locally, but ThingsBoard sync failed. Retry sync later.',
+                        data: {
+                            ...booking,
+                            sync_status: 'sync_failed',
+                            sync_error: error.message
+                        },
+                        integrations: {
+                            thingsboard: {
+                                success: false,
+                                message: error.message
+                            }
+                        }
+                    }
+                };
+            }
+        })();
+
+        if (idempotencyKey) {
+            storeIdempotentBookingResponse(idempotencyKey, bookingPromise);
+        }
+
+        const responsePayload = await bookingPromise;
+        return res.status(responsePayload.status).json(responsePayload.body);
+    } catch (error) {
         logger.error('Booking processing failed.', {
             request_id: req.requestId,
-            booking_id: validation.booking.id,
+            booking_id: null,
             error: {
                 message: error.message,
                 stack: error.stack
             }
         });
 
-        return res.status(502).json({
+        const statusCode = error.code === 'BOOKING_QUEUE_FULL' ? 503 : 500;
+        return res.status(statusCode).json({
             success: false,
-            message: `Unable to send booking to ThingsBoard. ${error.message} Please try again.`,
-            integrations: {
-                thingsboard: {
-                    success: false,
-                    message: error.message
-                }
-            }
+            message: error.message
         });
     }
 });

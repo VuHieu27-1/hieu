@@ -137,6 +137,7 @@ body{
     transition: 0.3s;
 }
 .content_all p{
+    cursor: pointer;
     overflow: scroll;
     scrollbar-width: none;
     transform: translateY(40px);
