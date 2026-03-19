@@ -36,21 +36,17 @@ function load_origin()
 function check_status_success_task(){
     for(let element of data[sub_task].subtask)
     {
-    console.log(element.checked_success);
     if(element.checked_success == false)
     {
-        console.log(element.content);
         data[sub_task].status_success_tasks = false;
         localStorage.setItem("info_content_block", JSON.stringify(data));
         return;
     }else
     {
-        console.log(element.content);
         data[sub_task].status_success_tasks = true;
     }
     }
     localStorage.setItem("info_content_block", JSON.stringify(data));
-    console.log(data[sub_task].status_success_tasks);
 } 
 
 function load_data()
@@ -141,7 +137,7 @@ search_bar.addEventListener("keydown", function(event) {
 });
 let check_open_setting = false;
 function open_setting(event){   
-    console.log(`check_open_setting: ${check_open_setting}`);
+    console.log(`check_open_setting1: ${check_open_setting}`);
     const icon_setting_item = event.parentElement.querySelector(".icon_edit_item");
     if(icon_setting_item)
     {
@@ -149,9 +145,9 @@ function open_setting(event){
         check_open_setting = true;
     }
 }
-// function off_open_setting(){
-//     console.log(`check_open_setting: ${check_open_setting}`);
-//     let icon_setting_item = document.querySelector(".icon_edit_item");
+// function off_open_setting(event){
+//     console.log(`check_open_setting2: ${check_open_setting}`);
+//     let icon_setting_item = event.parentElement.querySelector(".icon_edit_item");
 //     if(check_open_setting == false)
 //     {
 //         icon_setting_item.classList.remove("open_icon_edit_item");

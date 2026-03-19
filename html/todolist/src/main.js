@@ -11,6 +11,7 @@ let color3 = "linear-gradient(155deg,  rgba(238, 181, 143, 0.5), rgba(233, 187, 
 let color4 = "linear-gradient(135deg,  rgba(255, 171, 171, 0.7), rgba(201, 26, 99, 0.8) )";
 let color_choose = "white";
 function add_task() {
+    select_color_1();
     let add_tasks = document.querySelector('#add_tasks');
     let over_load = document.querySelector('#over_load');
     add_tasks.classList.toggle('diplay_block_add_task');
@@ -102,13 +103,7 @@ document.querySelector('.color_4').addEventListener("keydown", function(event)
 });
 function add_block_tasks() {
     const taskName = input_task_name.value;
-    let check_choose_color = false;
-    if(document.querySelector('.color_1').classList.contains("effect_block") || document.querySelector('.color_2').classList.contains("effect_block") 
-        || document.querySelector('.color_3').classList.contains("effect_block") || document.querySelector('.color_4').classList.contains("effect_block") )
-    {
-        check_choose_color = true; 
-    }
-    if (taskName !== "" && check_choose_color) {
+    if (taskName !== "" && taskName.length <= 16) {
         data.push({
             name: taskName,
             color: color_choose, 
@@ -125,7 +120,11 @@ function add_block_tasks() {
         document.querySelector('.color_3').classList.remove("effect_block");
         document.querySelector('.color_4').classList.remove("effect_block");
         add_task();
-    }else
+    }else if(taskName.length > 16)
+    {
+        alert("Exceeded allowed characters.");
+    }
+    else
     {
         alert("Task information is missing.");
     }
@@ -152,7 +151,6 @@ function change_status_tasks()
     let status_icon_work = document.querySelector('#status_icon_work');
     let status_icon_success = document.querySelector('#status_icon_success');
     data.forEach((task) => {
-    console.log(`${task.name}: ${task.status_success_tasks}`);
     if(task.status_success_tasks == true)
     {
         status_icon_work.classList.add('add_status_icon_work');
