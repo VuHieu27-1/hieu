@@ -13,7 +13,6 @@ const DATA_DIR = path.join(__dirname, 'data');
 const LOG_DIR = path.join(DATA_DIR, 'logs');
 const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
 const PHONE_REGEX = /^(\+84|84|0)[0-9]{9,10}$/;
-const VALID_VEHICLES = new Set(['2_seats', '4_seats', '6_seats', '8_seats']);
 const RAW_THINGSBOARD_URL = process.env.THINGSBOARD_URL || 'https://eu.thingsboard.cloud/entities/devices/all';
 const THINGSBOARD_ACCESS_TOKEN = process.env.THINGSBOARD_ACCESS_TOKEN || '7rvm1WzxLQz8c3cKdEU0';
 
@@ -160,15 +159,28 @@ const generateBookingId = () => {
 
 const sanitizeString = (value) => String(value || '').trim();
 
+const buildInitialBookingStatus = () => ({
+    code: 'pending_dispatch',
+    label: 'Pending dispatch',
+    eta_minutes: null,
+    vehicle_plate: null,
+    can_change_pickup: true,
+    can_cancel: true,
+    updated_at: new Date().toISOString()
+});
+
 const createBookingRecord = (normalized) => ({
     id: generateBookingId(),
     name: normalized.name,
     phone: normalized.phone,
     start_time: normalized.start_time,
     end_time: normalized.end_time,
-    vehicle_type: normalized.vehicle_type,
-    location_id: normalized.location_id || null,
-    pickup_location: normalized.pickup_location || null,
+    pickup_time: normalized.pickup_time || normalized.start_time,
+    pickup_time_mode: normalized.pickup_time_mode || 'now',
+    passenger_count: normalized.passenger_count || 1,
+    pickup_area: normalized.pickup_area || null,
+    dropoff_point: normalized.dropoff_point || null,
+    booking_status: buildInitialBookingStatus(),
     created_at: new Date().toISOString(),
     sync_status: 'pending',
     sync_error: null
@@ -204,7 +216,7 @@ const createBookingSafely = async (normalizedBooking, meta = {}) => {
             booking_id: booking.id,
             queue_depth: pendingBookingJobs,
             customer_name: booking.name,
-            vehicle_type: booking.vehicle_type
+            passenger_count: booking.passenger_count
         });
 
         return booking;
@@ -365,9 +377,11 @@ const buildThingsBoardPayload = (booking) => ({
         phone: booking.phone,
         start_time: booking.start_time,
         end_time: booking.end_time,
-        vehicle_type: booking.vehicle_type,
-        location_id: booking.location_id || '',
-        pickup_location: booking.pickup_location || '',
+        pickup_time: booking.pickup_time || booking.start_time,
+        pickup_time_mode: booking.pickup_time_mode || 'now',
+        passenger_count: booking.passenger_count || 1,
+        pickup_area: booking.pickup_area || '',
+        dropoff_point: booking.dropoff_point || '',
         created_at: booking.created_at,
         booking_created: 1
     }
@@ -381,9 +395,9 @@ const sendBookingToThingsBoard = async (booking) => {
     const attributePayload = {
         last_booking_id: booking.id,
         last_customer_name: booking.name,
-        last_vehicle_type: booking.vehicle_type,
-        last_location_id: booking.location_id || '',
-        last_pickup_location: booking.pickup_location || '',
+        last_passenger_count: booking.passenger_count || 1,
+        last_pickup_area: booking.pickup_area || '',
+        last_dropoff_point: booking.dropoff_point || '',
         last_booking_created_at: booking.created_at
     };
 
@@ -430,14 +444,14 @@ const validateBooking = (payload) => {
     const normalized = {
         name: sanitizeString(payload.name),
         phone: sanitizeString(payload.phone),
-        start_time: sanitizeString(payload.start_time),
-        end_time: sanitizeString(payload.end_time),
-        vehicle_type: sanitizeString(payload.vehicle_type),
-        location_id: sanitizeString(payload.location_id),
-        pickup_location: sanitizeString(payload.pickup_location)
+        pickup_time: sanitizeString(payload.pickup_time),
+        pickup_time_mode: sanitizeString(payload.pickup_time_mode || 'now'),
+        passenger_count: Number.parseInt(payload.passenger_count, 10) || 0,
+        pickup_area: sanitizeString(payload.pickup_area),
+        dropoff_point: sanitizeString(payload.dropoff_point)
     };
 
-    if (!normalized.name || !normalized.phone || !normalized.start_time || !normalized.end_time || !normalized.vehicle_type) {
+    if (!normalized.name || !normalized.phone || !normalized.pickup_area || !normalized.dropoff_point || !normalized.pickup_time) {
         return { valid: false, message: 'Missing required fields.' };
     }
 
@@ -445,19 +459,28 @@ const validateBooking = (payload) => {
         return { valid: false, message: 'Phone number format is invalid.' };
     }
 
-    if (!VALID_VEHICLES.has(normalized.vehicle_type)) {
-        return { valid: false, message: 'Vehicle type is not supported.' };
+    if (!['now', 'scheduled'].includes(normalized.pickup_time_mode)) {
+        return { valid: false, message: 'Pickup time mode is invalid.' };
     }
 
-    const startDate = new Date(normalized.start_time);
-    const endDate = new Date(normalized.end_time);
+    if (!Number.isInteger(normalized.passenger_count) || normalized.passenger_count < 1 || normalized.passenger_count > 8) {
+        return { valid: false, message: 'Passenger count must be between 1 and 8.' };
+    }
 
-    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-        return { valid: false, message: 'Start time or end time is invalid.' };
+    const pickupDate = new Date(normalized.pickup_time);
+    const startDate = new Date(pickupDate);
+    const endDate = new Date(pickupDate.getTime() + (30 * 60 * 1000));
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || Number.isNaN(pickupDate.getTime())) {
+        return { valid: false, message: 'Pickup time is invalid.' };
     }
 
     if (endDate <= startDate) {
         return { valid: false, message: 'End time must be later than start time.' };
+    }
+
+    if (normalized.pickup_time_mode === 'scheduled' && pickupDate <= new Date()) {
+        return { valid: false, message: 'Scheduled pickup time must be in the future.' };
     }
 
     return {
@@ -467,9 +490,11 @@ const validateBooking = (payload) => {
             phone: normalized.phone,
             start_time: startDate.toISOString(),
             end_time: endDate.toISOString(),
-            vehicle_type: normalized.vehicle_type,
-            location_id: normalized.location_id || null,
-            pickup_location: normalized.pickup_location || null
+            pickup_time: pickupDate.toISOString(),
+            pickup_time_mode: normalized.pickup_time_mode,
+            passenger_count: normalized.passenger_count,
+            pickup_area: normalized.pickup_area || null,
+            dropoff_point: normalized.dropoff_point || null
         }
     };
 };
@@ -522,6 +547,10 @@ app.get('/', (req, res) => {
 
 app.get('/booking.html', (req, res) => {
     return res.sendFile(path.join(PUBLIC_DIR, 'booking.html'));
+});
+
+app.get('/status.html', (req, res) => {
+    return res.sendFile(path.join(PUBLIC_DIR, 'status.html'));
 });
 
 app.use(express.static(PUBLIC_DIR));
@@ -628,7 +657,7 @@ app.post('/api/bookings', async (req, res) => {
                     request_id: req.requestId,
                     booking_id: booking.id,
                     customer_name: booking.name,
-                    vehicle_type: booking.vehicle_type
+                    passenger_count: booking.passenger_count
                 });
 
                 return {
@@ -800,7 +829,7 @@ app.use((req, res) => {
         });
     }
 
-    return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+    return res.sendFile(path.join(PUBLIC_DIR, 'booking.html'));
 });
 
 const startServer = (port) => {
@@ -812,8 +841,9 @@ const startServer = (port) => {
 
         logger.info('Server is listening.', {
             port: activePort,
-            qr_generator_url: `http://localhost:${activePort}/`,
+            qr_page_url: `http://localhost:${activePort}/`,
             booking_page_url: `http://localhost:${activePort}/booking.html`,
+            booking_status_url: `http://localhost:${activePort}/status.html`,
             health_check_url: `http://localhost:${activePort}/api/health`,
             system_logs_url: `http://localhost:${activePort}/api/system/logs`,
             thingsboard_logs_url: `http://localhost:${activePort}/api/thingsboard/logs`,

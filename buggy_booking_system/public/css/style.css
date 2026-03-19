@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 :root {
     color-scheme: light;
     --bg-start: #fff7f8;
@@ -70,7 +72,7 @@ body {
 }
 
 body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     color: var(--text);
     transition: background 0.35s ease, color 0.25s ease;
 }
@@ -142,7 +144,7 @@ body {
 }
 
 .booking-page {
-    width: min(560px, calc(100% - 20px));
+    width: min(680px, calc(100% - 32px));
 }
 
 .glass-panel {
@@ -295,7 +297,7 @@ body {
 .admin-config-panel,
 .admin-preview-panel,
 .booking-form-shell {
-    padding: 1.35rem;
+    padding: 1.6rem;
 }
 
 .section-heading {
@@ -303,7 +305,7 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
-    margin-bottom: 1.3rem;
+    margin-bottom: 0.9rem;
 }
 
 .section-heading h2 {
@@ -322,12 +324,54 @@ body {
 .config-stack,
 .booking-form {
     display: grid;
-    gap: 1rem;
+    gap: 0.8rem;
 }
 
 .booking-detail-grid {
     display: grid;
     gap: 1rem;
+}
+
+.location-input-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.location-btn {
+    min-height: 48px;
+    min-width: 120px;
+    white-space: nowrap;
+    font-size: 0.88rem;
+    border-color: rgba(255, 31, 79, 0.18);
+    background: linear-gradient(180deg, var(--panel-strong), rgba(255, 31, 79, 0.04));
+}
+
+.location-feedback {
+    padding: 0.8rem 0.9rem;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--panel-soft);
+    color: var(--text);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.location-feedback-info {
+    border-color: var(--line-strong);
+}
+
+.location-feedback-success {
+    border-color: var(--success-line);
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.location-feedback-error {
+    border-color: var(--danger-line);
+    background: var(--danger-bg);
+    color: var(--danger-text);
 }
 
 .booking-form > *,
@@ -443,11 +487,11 @@ body {
 
 .form-group {
     display: grid;
-    gap: 8px;
+    gap: 6px;
 }
 
 .form-label {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: var(--text);
 }
@@ -456,19 +500,19 @@ body {
 .booking-meta-label,
 .scan-detail-label {
     color: var(--muted);
-    font-size: 0.82rem;
-    line-height: 1.6;
+    font-size: 0.78rem;
+    line-height: 1.45;
 }
 
 .input-field,
 .color-field {
     width: 100%;
     min-width: 0;
-    border-radius: 18px;
+    border-radius: 16px;
     border: 1px solid var(--line-strong);
     background: var(--panel-strong);
     color: var(--text);
-    padding: 0.95rem 1rem;
+    padding: 0.82rem 0.95rem;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.25s ease, transform 0.18s ease;
 }
@@ -500,9 +544,9 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 56px;
-    padding: 0.95rem 1.2rem;
-    border-radius: 18px;
+    min-height: 52px;
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
     border: 0;
     font-size: 0.96rem;
     font-weight: 800;
@@ -613,33 +657,6 @@ body {
     box-shadow: inset 0 0 0 1px rgba(255, 31, 79, 0.12);
 }
 
-.qr-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 320px;
-    width: 100%;
-}
-
-.qr-preview canvas,
-.qr-preview svg {
-    max-width: 100%;
-    height: auto;
-    border-radius: 24px;
-    transition: transform 0.22s ease, filter 0.22s ease;
-    will-change: transform, filter;
-}
-
-.preview-card.is-rendering .qr-preview canvas,
-.preview-card.is-rendering .qr-preview svg {
-    filter: saturate(0.96);
-}
-
-.qr-preview:hover canvas,
-.qr-preview:hover svg {
-    transform: scale(1.015);
-}
-
 .scan-card-details,
 .booking-meta {
     display: grid;
@@ -648,8 +665,8 @@ body {
 
 .scan-card-detail,
 .booking-meta-item {
-    padding: 1rem 1.05rem;
-    border-radius: 22px;
+    padding: 0.85rem 0.95rem;
+    border-radius: 18px;
     border: 1px solid var(--line);
     background: var(--panel-strong);
 }
@@ -659,7 +676,7 @@ body {
     display: block;
     margin-top: 0.25rem;
     color: var(--text);
-    font-size: 1.05rem;
+    font-size: 0.98rem;
 }
 
 .scan-tips-card {
@@ -737,8 +754,8 @@ body {
 }
 
 .booking-hero {
-    padding: 1.5rem;
-    border-radius: 30px;
+    padding: 1.6rem;
+    border-radius: 28px;
     background: linear-gradient(145deg, var(--panel-strong), var(--panel-soft));
     border: 1px solid var(--line);
     box-shadow: var(--shadow);
@@ -746,11 +763,19 @@ body {
 
 .booking-form-shell {
     margin-top: 1rem;
+    background: linear-gradient(180deg, var(--panel-strong), var(--panel));
 }
 
 .booking-history-shell {
     margin-top: 1rem;
-    padding: 1.35rem;
+    padding: 1.1rem;
+}
+
+.booking-form-note {
+    margin: 0 0 0.3rem;
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
 }
 
 .booking-history-head {
@@ -889,9 +914,47 @@ body {
     grid-template-columns: minmax(0, 1fr);
 }
 
+.guest-time-row {
+    display: grid;
+    gap: 1rem;
+}
+
 .booking-submit {
-    margin-top: 0.25rem;
+    margin-top: 0.4rem;
     width: 100%;
+}
+
+.status-grid {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.status-card {
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: var(--panel-strong);
+}
+
+.status-card-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.status-card strong {
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.status-actions {
+    margin-top: 0.9rem;
+}
+
+.status-action-link {
+    width: 100%;
+    text-decoration: none;
 }
 
 input[type="datetime-local"].input-field,
@@ -909,7 +972,7 @@ input[type="datetime-local"].input-field {
 
 .error-text {
     color: var(--danger-text);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
 }
 
 .request-overlay {
@@ -1079,7 +1142,16 @@ input[type="datetime-local"].input-field {
     }
 
     .booking-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .guest-time-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .location-input-row {
+        grid-template-columns: minmax(0, 1fr) 140px;
+        align-items: center;
     }
 
     .history-input-row {
@@ -1088,6 +1160,10 @@ input[type="datetime-local"].input-field {
     }
 
     .history-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .status-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -1159,20 +1235,20 @@ input[type="datetime-local"].input-field {
     }
 
     .booking-hero {
-        padding: 1.15rem;
-        border-radius: 24px;
+        padding: 1rem;
+        border-radius: 20px;
     }
 
     .booking-form-shell {
         margin-top: 0.85rem;
-        padding: 1rem;
-        border-radius: 24px;
+        padding: 0.95rem;
+        border-radius: 20px;
     }
 
     .booking-history-shell {
         margin-top: 0.85rem;
-        padding: 1rem;
-        border-radius: 24px;
+        padding: 0.95rem;
+        border-radius: 20px;
     }
 
     .booking-history-head {
@@ -1206,16 +1282,16 @@ input[type="datetime-local"].input-field {
 
     .time-card,
     .booking-meta-item {
-        padding: 0.9rem;
-        border-radius: 20px;
+        padding: 0.8rem;
+        border-radius: 16px;
     }
 
     .input-field,
     .color-field,
     .primary-btn,
     .secondary-btn {
-        min-height: 54px;
-        border-radius: 16px;
+        min-height: 50px;
+        border-radius: 14px;
     }
 
     .request-overlay {

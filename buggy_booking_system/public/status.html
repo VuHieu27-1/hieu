@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Booking Status</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="app-shell app-booking">
+    <div class="ambient ambient-booking"></div>
+
+    <main class="booking-page">
+        <header class="booking-topbar">
+            <div class="brand-lockup brand-lockup-compact">
+                <img src="/img/d-soft-logo.png" alt="D-Soft logo" class="brand-logo brand-logo-compact">
+                <span class="eyebrow">Booking status</span>
+            </div>
+            <a href="/booking.html" class="secondary-btn">New booking</a>
+        </header>
+
+        <section class="booking-hero">
+            <div>
+                <h1 class="booking-title">Booking Status</h1>
+                <p class="booking-subtitle">This page updates automatically every few seconds.</p>
+            </div>
+
+            <div class="booking-meta">
+                <div class="booking-meta-item">
+                    <span class="booking-meta-label">Booking ID</span>
+                    <strong id="status-booking-id">-</strong>
+                </div>
+                <div class="booking-meta-item">
+                    <span class="booking-meta-label">Status</span>
+                    <strong id="status-label">Loading...</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel booking-form-shell">
+            <div id="status-feedback" class="history-feedback history-feedback-info">Loading booking status...</div>
+
+            <div class="status-grid">
+                <article class="status-card">
+                    <span class="status-card-label">Pickup area</span>
+                    <strong id="status-pickup-area">-</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Drop-off point</span>
+                    <strong id="status-dropoff-point">-</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Guests</span>
+                    <strong id="status-passengers">-</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Pickup time</span>
+                    <strong id="status-pickup-time">-</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">ETA</span>
+                    <strong id="status-eta">Waiting</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Vehicle plate</span>
+                    <strong id="status-vehicle-plate">Waiting</strong>
+                </article>
+            </div>
+
+            <div class="status-actions">
+                <a href="/booking.html" class="primary-btn status-action-link">Book another ride</a>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/status.js"></script>
+</body>
+</html>
