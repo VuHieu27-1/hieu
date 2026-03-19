@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Book Your Buggy</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
     <link rel="stylesheet" href="/css/style.css">
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="app-shell app-booking">
     <div class="ambient ambient-booking"></div>
@@ -40,7 +40,6 @@
         </section>
 
         <section class="glass-panel booking-form-shell">
-            <div id="context-banner" class="hidden context-banner"></div>
             <p class="booking-form-note">Enter your ride request below.</p>
 
             <form id="booking-form" class="booking-form" novalidate>
@@ -64,6 +63,16 @@
                             <button type="button" id="detect-location-button" class="secondary-btn location-btn">Use GPS</button>
                         </div>
                         <div id="location-feedback" class="location-feedback hidden"></div>
+                        <div id="gps-tracker-panel" class="gps-tracker hidden">
+                            <div class="gps-tracker-head">
+                                <div>
+                                    <strong>Pickup Map</strong>
+                                    <p>Use GPS or enter a pickup address, then drag the marker or tap the map to fine-tune the road position before booking.</p>
+                                </div>
+                                <button type="button" id="stop-location-button" class="secondary-btn gps-stop-btn hidden">Stop GPS</button>
+                            </div>
+                            <div id="gps-map" class="gps-map" aria-label="Current pickup location map"></div>
+                        </div>
                         <span class="error-text hidden" id="pickup-area-error">Please enter pickup area.</span>
                     </label>
 
@@ -111,11 +120,11 @@
         </section>
 
         <section class="glass-panel booking-history-shell">
-                <div class="section-heading booking-history-head">
-                    <div>
-                        <h2>Booking history</h2>
-                        <p>Check recent bookings by phone.</p>
-                    </div>
+            <div class="section-heading booking-history-head">
+                <div>
+                    <h2>Booking history</h2>
+                    <p>Check recent bookings by phone.</p>
+                </div>
                 <button id="toggle-history-button" type="button" class="secondary-btn">View history</button>
             </div>
 
@@ -148,11 +157,12 @@
                 <h2 id="request-title" class="request-title">Waiting for server confirmation</h2>
                 <p id="request-message" class="request-message">Please wait while we send your booking.</p>
             </div>
-            <p id="request-booking-line" class="request-booking-line hidden">Booking ID: <span id="booking-id"></span></p>
+            <p id="request-booking-line" class="request-booking-line hidden">Task ID: <span id="booking-id"></span></p>
             <button id="request-action" type="button" class="primary-btn hidden">Done</button>
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="/js/theme.js"></script>
     <script src="/js/booking.js"></script>
 </body>

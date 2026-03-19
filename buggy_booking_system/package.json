@@ -1,14 +1,19 @@
 {
   "name": "buggy-booking-system",
-  "version": "1.0.0",
-  "description": "QR-based booking system for buggy and taxi service",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Booking web and gateway server for buggy dispatch requests",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check public/js/booking.js && node --check public/js/status.js && node --check public/js/theme.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

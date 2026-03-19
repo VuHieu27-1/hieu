@@ -13,11 +13,13 @@ const DATA_DIR = path.join(__dirname, 'data');
 const LOG_DIR = path.join(DATA_DIR, 'logs');
 const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
 const PHONE_REGEX = /^(\+84|84|0)[0-9]{9,10}$/;
-const RAW_THINGSBOARD_URL = process.env.THINGSBOARD_URL || 'https://eu.thingsboard.cloud/entities/devices/all';
-const THINGSBOARD_ACCESS_TOKEN = process.env.THINGSBOARD_ACCESS_TOKEN || '7rvm1WzxLQz8c3cKdEU0';
+const DEFAULT_DISPATCH_API_URL = 'http://localhost:4001';
 const REVERSE_GEOCODE_URL = process.env.REVERSE_GEOCODE_URL || 'https://nominatim.openstreetmap.org/reverse';
+const SEARCH_GEOCODE_URL = process.env.SEARCH_GEOCODE_URL || 'https://nominatim.openstreetmap.org/search';
+const DISPATCH_API_URL = String(process.env.DISPATCH_API_URL || DEFAULT_DISPATCH_API_URL).trim();
 const LOCATION_HTTP_TIMEOUT_MS = Number(process.env.LOCATION_HTTP_TIMEOUT_MS || 15000);
-const SERVICE_USER_AGENT = 'd-soft-buggy-booking-system/1.0';
+const DISPATCH_HTTP_TIMEOUT_MS = Number(process.env.DISPATCH_HTTP_TIMEOUT_MS || 8000);
+const SERVICE_USER_AGENT = 'd-soft-buggy-booking-system/1.1';
 
 const logger = createLogger({
     logDir: LOG_DIR,
@@ -32,19 +34,9 @@ let nextBookingSequence = 1;
 let pendingBookingJobs = 0;
 const MAX_PENDING_BOOKINGS = Number(process.env.MAX_PENDING_BOOKINGS || 200);
 const IDEMPOTENCY_TTL_MS = Number(process.env.IDEMPOTENCY_TTL_MS || 10 * 60 * 1000);
+const PENDING_BROADCAST_STATUS = 'PENDING_BROADCAST';
+const PENDING_BROADCAST_MESSAGE = '\u0110\u00e3 ph\u00e1t t\u00edn hi\u1ec7u \u0111\u1ebfn c\u00e1c t\u00e0i x\u1ebf g\u1ea7n nh\u1ea5t, \u0111ang ch\u1edd t\u00e0i x\u1ebf nh\u1eadn cu\u1ed1c...';
 const idempotencyStore = new Map();
-let lastThingsBoardSync = {
-    success: false,
-    at: null,
-    message: 'No ThingsBoard sync attempts yet.'
-};
-
-const normalizeThingsBoardBaseUrl = (rawUrl) => {
-    const parsed = new URL(rawUrl);
-    return `${parsed.protocol}//${parsed.host}`;
-};
-
-const THINGSBOARD_URL = normalizeThingsBoardBaseUrl(RAW_THINGSBOARD_URL);
 
 const maskPhone = (phone) => {
     if (!phone || phone.length < 4) {
@@ -62,15 +54,6 @@ const summarizeBody = (body) => {
     return {
         ...body,
         phone: body.phone ? maskPhone(body.phone) : body.phone
-    };
-};
-
-const setLastThingsBoardSync = (success, message, details = {}) => {
-    lastThingsBoardSync = {
-        success,
-        at: new Date().toISOString(),
-        message,
-        ...details
     };
 };
 
@@ -102,6 +85,46 @@ const sanitizeIdempotencyKey = (value) => {
     return key || null;
 };
 
+const buildCorruptBookingsBackupPath = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return path.join(DATA_DIR, `bookings.corrupt-${stamp}.json`);
+};
+
+const loadBookingsFromDisk = async () => {
+    const raw = await fs.readFile(BOOKINGS_FILE, 'utf8');
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+        await fs.writeFile(BOOKINGS_FILE, '[]', 'utf8');
+        logger.warn('Bookings storage file was empty and has been reset.', {
+            bookings_file: BOOKINGS_FILE
+        });
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(trimmed);
+
+        if (!Array.isArray(parsed)) {
+            throw new Error('Bookings storage root must be a JSON array.');
+        }
+
+        return parsed;
+    } catch (error) {
+        const backupFile = buildCorruptBookingsBackupPath();
+        await fs.copyFile(BOOKINGS_FILE, backupFile);
+        await fs.writeFile(BOOKINGS_FILE, '[]', 'utf8');
+
+        logger.warn('Bookings storage file contained invalid JSON and has been recovered.', {
+            bookings_file: BOOKINGS_FILE,
+            backup_file: backupFile,
+            error: error.message
+        });
+
+        return [];
+    }
+};
+
 const ensureStorage = async () => {
     logger.info('Initializing storage directories.', {
         data_dir: DATA_DIR,
@@ -123,8 +146,7 @@ const ensureStorage = async () => {
         });
     }
 
-    const raw = await fs.readFile(BOOKINGS_FILE, 'utf8');
-    bookings = JSON.parse(raw);
+    bookings = await loadBookingsFromDisk();
     initializeBookingSequence();
 
     logger.info('Storage initialized successfully.', {
@@ -162,6 +184,14 @@ const generateBookingId = () => {
 
 const sanitizeString = (value) => String(value || '').trim();
 
+const joinUniqueAddressParts = (parts = []) => {
+    const values = parts
+        .map((part) => sanitizeString(part))
+        .filter(Boolean);
+
+    return values.filter((part, index) => values.indexOf(part) === index).join(', ');
+};
+
 const normalizeIsoDateTime = (value) => {
     const rawValue = sanitizeString(value);
 
@@ -173,64 +203,22 @@ const normalizeIsoDateTime = (value) => {
     return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 };
 
-const normalizeDeviceLocation = (payload) => {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        return null;
-    }
-
-    const latitude = Number(payload.latitude);
-    const longitude = Number(payload.longitude);
-
-    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
-        return null;
-    }
-
-    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-        return null;
-    }
-
-    const accuracy = Number(payload.accuracy);
-    const resolvedAddress = sanitizeString(payload.resolved_address || payload.resolvedAddress);
-    const fullAddress = sanitizeString(payload.full_address || payload.fullAddress);
-    const geocodeSource = sanitizeString(payload.geocode_source || payload.geocodeSource);
-
-    return {
-        latitude: Number(latitude.toFixed(6)),
-        longitude: Number(longitude.toFixed(6)),
-        accuracy: Number.isFinite(accuracy) && accuracy > 0 ? Math.round(accuracy) : null,
-        resolved_address: resolvedAddress || fullAddress || null,
-        full_address: fullAddress || resolvedAddress || null,
-        geocode_source: geocodeSource || null,
-        captured_at: normalizeIsoDateTime(payload.captured_at || payload.capturedAt) || new Date().toISOString()
-    };
-};
-
-const buildInitialBookingStatus = () => ({
-    code: 'pending_dispatch',
-    label: 'Pending dispatch',
-    eta_minutes: null,
-    vehicle_plate: null,
-    can_change_pickup: true,
-    can_cancel: true,
-    updated_at: new Date().toISOString()
-});
-
 const createBookingRecord = (normalized) => ({
     id: generateBookingId(),
-    name: normalized.name,
-    phone: normalized.phone,
-    start_time: normalized.start_time,
-    end_time: normalized.end_time,
-    pickup_time: normalized.pickup_time || normalized.start_time,
-    pickup_time_mode: normalized.pickup_time_mode || 'now',
-    passenger_count: normalized.passenger_count || 1,
-    pickup_area: normalized.pickup_area || null,
-    dropoff_point: normalized.dropoff_point || null,
-    device_location: normalized.device_location || null,
-    booking_status: buildInitialBookingStatus(),
-    created_at: new Date().toISOString(),
-    sync_status: 'pending',
-    sync_error: null
+    taskId: normalized.taskId || null,
+    status: normalized.status || PENDING_BROADCAST_STATUS,
+    statusMessage: normalized.statusMessage || PENDING_BROADCAST_MESSAGE,
+    guestName: normalized.guestName,
+    phone: normalized.phone || null,
+    passengerCount: normalized.passengerCount || 1,
+    bookingType: normalized.bookingType || 'NOW',
+    scheduledTime: normalized.scheduledTime || null,
+    pickup: normalized.pickup,
+    dropoff: normalized.dropoff,
+    startTime: normalized.startTime,
+    endTime: normalized.endTime,
+    pickupTime: normalized.pickupTime,
+    createdAt: new Date().toISOString()
 });
 
 const enqueueBookingTask = async (task) => {
@@ -252,9 +240,12 @@ const enqueueBookingTask = async (task) => {
     }
 };
 
-const createBookingSafely = async (normalizedBooking, meta = {}) => {
+const createBookingSafely = async (normalizedBooking, meta = {}, overrides = {}) => {
     return enqueueBookingTask(async () => {
-        const booking = createBookingRecord(normalizedBooking);
+        const booking = createBookingRecord({
+            ...normalizedBooking,
+            ...overrides
+        });
         bookings.push(booking);
         await persistBookings();
 
@@ -262,27 +253,93 @@ const createBookingSafely = async (normalizedBooking, meta = {}) => {
             request_id: meta.request_id,
             booking_id: booking.id,
             queue_depth: pendingBookingJobs,
-            customer_name: booking.name,
-            passenger_count: booking.passenger_count
+            customer_name: booking.guestName,
+            passenger_count: booking.passengerCount
         });
 
         return booking;
     });
 };
 
-const updateBookingSyncStatus = async (bookingId, syncStatus, syncError = null) => {
-    const booking = bookings.find((item) => item.id === bookingId);
+const buildAsyncBookingAcceptedResponse = (booking) => ({
+    taskId: booking.taskId,
+    status: booking.status || PENDING_BROADCAST_STATUS,
+    message: booking.statusMessage || PENDING_BROADCAST_MESSAGE
+});
 
-    if (!booking) {
-        return null;
+const buildDispatchEndpoint = (pathName) => {
+    const baseUrl = DISPATCH_API_URL.endsWith('/')
+        ? DISPATCH_API_URL
+        : `${DISPATCH_API_URL}/`;
+
+    return new URL(String(pathName || '').replace(/^\/+/, ''), baseUrl).toString();
+};
+
+const normalizeDispatchAcceptedResponse = (payload) => {
+    const taskId = sanitizeString(payload?.taskId);
+    const status = sanitizeString(payload?.status || PENDING_BROADCAST_STATUS);
+    const message = sanitizeString(payload?.message || PENDING_BROADCAST_MESSAGE);
+
+    if (!taskId || !status) {
+        throw new Error('Dispatch server returned an invalid acceptance response.');
     }
 
-    booking.sync_status = syncStatus;
-    booking.sync_error = syncError;
-    booking.synced_at = syncStatus === 'synced' ? new Date().toISOString() : null;
-    await persistBookings();
+    return {
+        taskId,
+        status,
+        message
+    };
+};
 
-    return booking;
+const createDispatchBooking = async (payload, meta = {}) => {
+    try {
+        const response = await postJson(buildDispatchEndpoint('/api/bookings'), payload, {
+            ...meta,
+            category: 'dispatch',
+            action: 'create_booking'
+        });
+
+        let parsed;
+        try {
+            parsed = JSON.parse(response.body);
+        } catch (error) {
+            throw new Error('Dispatch server returned invalid JSON.');
+        }
+
+        return normalizeDispatchAcceptedResponse(parsed);
+    } catch (error) {
+        error.code = error.code || 'DISPATCH_UNAVAILABLE';
+        throw error;
+    }
+};
+
+const fetchDispatchBookingStatus = async (taskId, meta = {}) => {
+    const response = await getJson(buildDispatchEndpoint(`/api/bookings/${encodeURIComponent(taskId)}`), {
+        ...meta,
+        category: 'dispatch',
+        action: 'get_booking_status'
+    });
+
+    return response.body;
+};
+
+const mergeBookingWithDispatchState = (booking, dispatchState) => {
+    if (!dispatchState) {
+        return booking;
+    }
+
+    return {
+        ...booking,
+        status: sanitizeString(dispatchState.status) || booking.status,
+        statusMessage: sanitizeString(dispatchState.message) || booking.statusMessage,
+        assignedVehicle: sanitizeString(dispatchState.assignedVehicle) || null,
+        estimatedPickupSeconds: Number.isFinite(Number(dispatchState.estimatedPickupSeconds))
+            ? Number(dispatchState.estimatedPickupSeconds)
+            : null,
+        driver: dispatchState.driver && typeof dispatchState.driver === 'object'
+            ? dispatchState.driver
+            : null
+    };
 };
 
 const getIdempotentBookingResponse = (idempotencyKey) => {
@@ -365,8 +422,8 @@ const postJson = (targetUrl, payload, meta = {}) => new Promise((resolve, reject
         });
     });
 
-    request.setTimeout(30000, () => {
-        request.destroy(new Error('Request timed out after 10 seconds.'));
+    request.setTimeout(DISPATCH_HTTP_TIMEOUT_MS, () => {
+        request.destroy(new Error(`Dispatch request timed out after ${DISPATCH_HTTP_TIMEOUT_MS}ms.`));
     });
 
     request.on('error', (error) => {
@@ -477,7 +534,83 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
     request.end();
 });
 
-const reverseGeocodeCoordinates = async (latitude, longitude, language = 'vi,en') => {
+const normalizeNominatimReverseGeocode = (payload, latitude, longitude) => {
+    const address = payload && payload.address ? payload.address : {};
+    const roadName = sanitizeString(address.road || address.pedestrian || address.footway || address.cycleway);
+    const streetNumber = sanitizeString(address.house_number);
+    const streetLine = joinUniqueAddressParts([streetNumber, roadName]);
+    const localityLine = joinUniqueAddressParts([
+        address.neighbourhood,
+        address.quarter,
+        address.suburb,
+        address.residential,
+        address.city_district,
+        address.village,
+        address.town,
+        address.city
+    ]);
+    const adminLine = joinUniqueAddressParts([
+        address.state_district,
+        address.state,
+        address.postcode,
+        address.country
+    ]);
+    const placeName = sanitizeString(
+        address.amenity
+        || address.building
+        || address.tourism
+        || address.attraction
+        || address.hotel
+        || address.resort
+        || address.shop
+    );
+    const displayAddress = joinUniqueAddressParts([streetLine, localityLine, adminLine]) || sanitizeString(payload.display_name || payload.name);
+    const shortAddress = joinUniqueAddressParts([placeName, streetLine, localityLine]) || displayAddress;
+    const fullAddress = sanitizeString(payload.display_name || displayAddress);
+
+    return {
+        provider: 'nominatim',
+        latitude,
+        longitude,
+        place_name: placeName || null,
+        road_name: roadName || null,
+        street_number: streetNumber || null,
+        short_address: shortAddress || null,
+        display_address: displayAddress || null,
+        full_address: fullAddress || null,
+        raw: payload
+    };
+};
+
+const normalizeBookingPoint = (payload) => {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return null;
+    }
+
+    const lat = Number(payload.lat);
+    const lng = Number(payload.lng);
+    const locationName = sanitizeString(payload.locationName);
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+        return null;
+    }
+
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+        return null;
+    }
+
+    if (!locationName) {
+        return null;
+    }
+
+    return {
+        lat: Number(lat.toFixed(6)),
+        lng: Number(lng.toFixed(6)),
+        locationName
+    };
+};
+
+const reverseGeocodeWithNominatim = async (latitude, longitude, language = 'vi,en') => {
     const targetUrl = new URL(REVERSE_GEOCODE_URL);
     targetUrl.searchParams.set('format', 'jsonv2');
     targetUrl.searchParams.set('lat', String(latitude));
@@ -491,177 +624,125 @@ const reverseGeocodeCoordinates = async (latitude, longitude, language = 'vi,en'
         accept_language: language
     });
 
-    return response.body;
+    return normalizeNominatimReverseGeocode(response.body, latitude, longitude);
 };
 
-const buildThingsBoardEndpoint = (pathName) => new URL(pathName, THINGSBOARD_URL).toString();
+const normalizeNominatimSearchResult = (payload) => {
+    const result = Array.isArray(payload) ? payload[0] : null;
 
-const verifyThingsBoardConnection = async () => {
-    const startupTelemetryUrl = buildThingsBoardEndpoint(`/api/v1/${THINGSBOARD_ACCESS_TOKEN}/telemetry`);
-    const startupPayload = {
-        ts: Date.now(),
-        values: {
-            server_boot_check: 1,
-            server_boot_time: new Date().toISOString(),
-            source: 'buggy-booking-system'
-        }
-    };
-
-    const response = await postJson(startupTelemetryUrl, startupPayload, {
-        category: 'thingsboard',
-        action: 'startup_check'
-    });
-
-    const successMessage = 'ThingsBoard startup connection verified successfully.';
-    setLastThingsBoardSync(true, successMessage, {
-        telemetry_url: startupTelemetryUrl,
-        telemetry_status: response.status
-    });
-
-    logger.info(successMessage, {
-        category: 'thingsboard',
-        telemetry_url: startupTelemetryUrl,
-        telemetry_status: response.status
-    });
-};
-
-const buildThingsBoardPayload = (booking) => ({
-    ts: Date.now(),
-    values: {
-        booking_id: booking.id,
-        customer_name: booking.name,
-        phone: booking.phone,
-        start_time: booking.start_time,
-        end_time: booking.end_time,
-        pickup_time: booking.pickup_time || booking.start_time,
-        pickup_time_mode: booking.pickup_time_mode || 'now',
-        passenger_count: booking.passenger_count || 1,
-        pickup_area: booking.pickup_area || '',
-        dropoff_point: booking.dropoff_point || '',
-        pickup_latitude: booking.device_location?.latitude ?? null,
-        pickup_longitude: booking.device_location?.longitude ?? null,
-        pickup_accuracy_m: booking.device_location?.accuracy ?? null,
-        pickup_resolved_address: booking.device_location?.resolved_address || booking.pickup_area || '',
-        pickup_full_address: booking.device_location?.full_address || '',
-        created_at: booking.created_at,
-        booking_created: 1
+    if (!result) {
+        throw new Error('No matching address found.');
     }
-});
 
-const sendBookingToThingsBoard = async (booking) => {
-    const telemetryUrl = buildThingsBoardEndpoint(`/api/v1/${THINGSBOARD_ACCESS_TOKEN}/telemetry`);
-    const attributesUrl = buildThingsBoardEndpoint(`/api/v1/${THINGSBOARD_ACCESS_TOKEN}/attributes`);
-
-    const telemetryPayload = buildThingsBoardPayload(booking);
-    const attributePayload = {
-        last_booking_id: booking.id,
-        last_customer_name: booking.name,
-        last_passenger_count: booking.passenger_count || 1,
-        last_pickup_area: booking.pickup_area || '',
-        last_dropoff_point: booking.dropoff_point || '',
-        last_pickup_latitude: booking.device_location?.latitude ?? null,
-        last_pickup_longitude: booking.device_location?.longitude ?? null,
-        last_pickup_accuracy_m: booking.device_location?.accuracy ?? null,
-        last_pickup_resolved_address: booking.device_location?.resolved_address || booking.pickup_area || '',
-        last_booking_created_at: booking.created_at
-    };
-
-    const [telemetryResponse, attributesResponse] = await Promise.all([
-        postJson(telemetryUrl, telemetryPayload, {
-            category: 'thingsboard',
-            action: 'booking_telemetry',
-            booking_id: booking.id
-        }),
-        postJson(attributesUrl, attributePayload, {
-            category: 'thingsboard',
-            action: 'booking_attributes',
-            booking_id: booking.id
-        })
-    ]);
-
-    const successMessage = `ThingsBoard sync success for booking ${booking.id}`;
-    setLastThingsBoardSync(true, successMessage, {
-        booking_id: booking.id,
-        telemetry_url: telemetryUrl,
-        telemetry_status: telemetryResponse.status,
-        attributes_status: attributesResponse.status
-    });
-
-    logger.info(successMessage, {
-        category: 'thingsboard',
-        booking_id: booking.id,
-        telemetry_url: telemetryUrl,
-        telemetry_status: telemetryResponse.status,
-        attributes_url: attributesUrl,
-        attributes_status: attributesResponse.status
-    });
+    const latitude = Number.parseFloat(result.lat);
+    const longitude = Number.parseFloat(result.lon);
+    const address = result.address || {};
+    const roadName = sanitizeString(address.road || address.pedestrian || address.footway || address.cycleway);
+    const streetNumber = sanitizeString(address.house_number);
+    const displayAddress = sanitizeString(result.display_name);
+    const shortAddress = joinUniqueAddressParts([
+        joinUniqueAddressParts([streetNumber, roadName]),
+        address.neighbourhood,
+        address.suburb,
+        address.city_district,
+        address.city
+    ]) || displayAddress;
 
     return {
-        success: true,
-        skipped: false,
-        telemetry_url: telemetryUrl,
-        telemetry_status: telemetryResponse.status,
-        attributes_status: attributesResponse.status
+        provider: 'nominatim_search',
+        latitude: Number(latitude.toFixed(6)),
+        longitude: Number(longitude.toFixed(6)),
+        road_name: roadName || null,
+        street_number: streetNumber || null,
+        short_address: shortAddress || null,
+        display_address: displayAddress || shortAddress || null,
+        full_address: displayAddress || shortAddress || null,
+        raw: result
     };
+};
+
+const searchAddressWithNominatim = async (query, language = 'vi,en') => {
+    const targetUrl = new URL(SEARCH_GEOCODE_URL);
+    targetUrl.searchParams.set('format', 'jsonv2');
+    targetUrl.searchParams.set('q', query);
+    targetUrl.searchParams.set('limit', '1');
+    targetUrl.searchParams.set('addressdetails', '1');
+
+    const response = await getJson(targetUrl.toString(), {
+        category: 'location',
+        action: 'forward_geocode',
+        accept_language: language
+    });
+
+    return normalizeNominatimSearchResult(response.body);
+};
+
+const reverseGeocodeCoordinates = async (latitude, longitude, language = 'vi,en') => {
+    return reverseGeocodeWithNominatim(latitude, longitude, language);
 };
 
 const validateBooking = (payload) => {
     const normalized = {
-        name: sanitizeString(payload.name),
+        guestName: sanitizeString(payload.guestName),
         phone: sanitizeString(payload.phone),
-        pickup_time: sanitizeString(payload.pickup_time),
-        pickup_time_mode: sanitizeString(payload.pickup_time_mode || 'now'),
-        passenger_count: Number.parseInt(payload.passenger_count, 10) || 0,
-        pickup_area: sanitizeString(payload.pickup_area),
-        dropoff_point: sanitizeString(payload.dropoff_point),
-        device_location: normalizeDeviceLocation(payload.device_location)
+        passengerCount: Number.parseInt(payload.passengerCount, 10) || 0,
+        bookingType: sanitizeString(payload.bookingType || 'NOW').toUpperCase(),
+        scheduledTime: normalizeIsoDateTime(payload.scheduledTime),
+        pickup: normalizeBookingPoint(payload.pickup),
+        dropoff: normalizeBookingPoint(payload.dropoff)
     };
 
-    if (!normalized.name || !normalized.phone || !normalized.pickup_area || !normalized.dropoff_point || !normalized.pickup_time) {
+    if (!normalized.guestName || !normalized.pickup || !normalized.dropoff) {
         return { valid: false, message: 'Missing required fields.' };
     }
 
-    if (!PHONE_REGEX.test(normalized.phone)) {
+    if (normalized.phone && !PHONE_REGEX.test(normalized.phone)) {
         return { valid: false, message: 'Phone number format is invalid.' };
     }
 
-    if (!['now', 'scheduled'].includes(normalized.pickup_time_mode)) {
-        return { valid: false, message: 'Pickup time mode is invalid.' };
+    if (!['NOW', 'SCHEDULED'].includes(normalized.bookingType)) {
+        return { valid: false, message: 'Booking type is invalid.' };
     }
 
-    if (!Number.isInteger(normalized.passenger_count) || normalized.passenger_count < 1 || normalized.passenger_count > 8) {
+    if (!Number.isInteger(normalized.passengerCount) || normalized.passengerCount < 1 || normalized.passengerCount > 8) {
         return { valid: false, message: 'Passenger count must be between 1 and 8.' };
     }
 
-    const pickupDate = new Date(normalized.pickup_time);
+    if (normalized.bookingType === 'SCHEDULED' && !normalized.scheduledTime) {
+        return { valid: false, message: 'Scheduled time is required for SCHEDULED bookings.' };
+    }
+
+    const pickupDate = normalized.bookingType === 'SCHEDULED'
+        ? new Date(normalized.scheduledTime)
+        : new Date();
     const startDate = new Date(pickupDate);
     const endDate = new Date(pickupDate.getTime() + (30 * 60 * 1000));
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || Number.isNaN(pickupDate.getTime())) {
-        return { valid: false, message: 'Pickup time is invalid.' };
+        return { valid: false, message: 'Scheduled time is invalid.' };
     }
 
     if (endDate <= startDate) {
         return { valid: false, message: 'End time must be later than start time.' };
     }
 
-    if (normalized.pickup_time_mode === 'scheduled' && pickupDate <= new Date()) {
-        return { valid: false, message: 'Scheduled pickup time must be in the future.' };
+    if (normalized.bookingType === 'SCHEDULED' && pickupDate <= new Date()) {
+        return { valid: false, message: 'Scheduled time must be in the future.' };
     }
 
     return {
         valid: true,
         normalizedBooking: {
-            name: normalized.name,
-            phone: normalized.phone,
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
-            pickup_time: pickupDate.toISOString(),
-            pickup_time_mode: normalized.pickup_time_mode,
-            passenger_count: normalized.passenger_count,
-            pickup_area: normalized.pickup_area || null,
-            dropoff_point: normalized.dropoff_point || null,
-            device_location: normalized.device_location
+            guestName: normalized.guestName,
+            phone: normalized.phone || null,
+            passengerCount: normalized.passengerCount,
+            bookingType: normalized.bookingType,
+            scheduledTime: normalized.bookingType === 'SCHEDULED' ? pickupDate.toISOString() : null,
+            pickup: normalized.pickup,
+            dropoff: normalized.dropoff,
+            startTime: startDate.toISOString(),
+            endTime: endDate.toISOString(),
+            pickupTime: pickupDate.toISOString()
         }
     };
 };
@@ -758,17 +839,51 @@ app.get('/api/location/reverse-geocode', async (req, res) => {
     }
 });
 
+app.get('/api/location/search', async (req, res) => {
+    const query = sanitizeString(req.query.q);
+    const language = sanitizeString(req.headers['accept-language']) || 'vi,en';
+
+    if (query.length < 3) {
+        return res.status(400).json({
+            success: false,
+            message: 'Search query must be at least 3 characters.'
+        });
+    }
+
+    try {
+        const data = await searchAddressWithNominatim(query, language);
+        return res.json({
+            success: true,
+            data
+        });
+    } catch (error) {
+        logger.error('Address search lookup failed.', {
+            request_id: req.requestId,
+            query,
+            error: {
+                message: error.message,
+                stack: error.stack
+            }
+        });
+
+        return res.status(502).json({
+            success: false,
+            message: 'Unable to search for that address right now.'
+        });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     return res.json({
         success: true,
-        message: 'Server is running',
+        message: 'Booking gateway is running.',
         data: {
+            service: 'buggy-booking-system',
             uptime_seconds: Math.round(process.uptime()),
             bookings_count: bookings.length,
-            thingsboard_url: THINGSBOARD_URL,
+            dispatch_api_url: DISPATCH_API_URL,
             latest_log_file: logger.getLatestLogPath(),
-            log_directory: logger.getLogDir(),
-            last_thingsboard_sync: lastThingsBoardSync
+            log_directory: logger.getLogDir()
         }
     });
 });
@@ -789,28 +904,6 @@ app.get('/api/system/logs', async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Unable to read system logs.'
-        });
-    }
-});
-
-app.get('/api/thingsboard/logs', async (req, res) => {
-    try {
-        const lines = await readLatestLogLines(200);
-        const entries = lines.filter((line) => line.toLowerCase().includes('thingsboard'));
-
-        return res.json({
-            success: true,
-            data: {
-                last_sync: lastThingsBoardSync,
-                count: entries.length,
-                entries
-            }
-        });
-    } catch (error) {
-        logger.error('Failed to read ThingsBoard logs.', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Unable to read ThingsBoard logs.'
         });
     }
 });
@@ -848,76 +941,29 @@ app.post('/api/bookings', async (req, res) => {
         }
 
         const bookingPromise = (async () => {
-            const booking = await createBookingSafely(validation.normalizedBooking, {
+            const dispatchAccepted = await createDispatchBooking(req.body || {}, {
                 request_id: req.requestId
             });
+            const booking = await createBookingSafely(validation.normalizedBooking, {
+                request_id: req.requestId
+            }, {
+                taskId: dispatchAccepted.taskId,
+                status: dispatchAccepted.status,
+                statusMessage: dispatchAccepted.message
+            });
 
-            try {
-                const thingsboardResult = await sendBookingToThingsBoard(booking);
-                await updateBookingSyncStatus(booking.id, 'synced', null);
+            logger.info('Booking task accepted for asynchronous broadcast.', {
+                request_id: req.requestId,
+                booking_id: booking.id,
+                task_id: booking.taskId,
+                customer_name: booking.guestName,
+                passenger_count: booking.passengerCount
+            });
 
-                logger.info('Booking created and synced successfully.', {
-                    request_id: req.requestId,
-                    booking_id: booking.id,
-                    customer_name: booking.name,
-                    passenger_count: booking.passenger_count
-                });
-
-                return {
-                    status: 201,
-                    body: {
-                        success: true,
-                        message: 'Booking created and synced to ThingsBoard',
-                        data: {
-                            ...booking,
-                            sync_status: 'synced',
-                            sync_error: null
-                        },
-                        integrations: {
-                            thingsboard: {
-                                success: true,
-                                message: 'ThingsBoard accepted the booking.',
-                                telemetry_url: thingsboardResult.telemetry_url,
-                                telemetry_status: thingsboardResult.telemetry_status,
-                                attributes_status: thingsboardResult.attributes_status
-                            }
-                        }
-                    }
-                };
-            } catch (error) {
-                await updateBookingSyncStatus(booking.id, 'sync_failed', error.message);
-                setLastThingsBoardSync(false, error.message, {
-                    booking_id: booking.id
-                });
-
-                logger.error('Booking sync failed after local save.', {
-                    request_id: req.requestId,
-                    booking_id: booking.id,
-                    error: {
-                        message: error.message,
-                        stack: error.stack
-                    }
-                });
-
-                return {
-                    status: 202,
-                    body: {
-                        success: true,
-                        message: 'Booking saved locally, but ThingsBoard sync failed. Retry sync later.',
-                        data: {
-                            ...booking,
-                            sync_status: 'sync_failed',
-                            sync_error: error.message
-                        },
-                        integrations: {
-                            thingsboard: {
-                                success: false,
-                                message: error.message
-                            }
-                        }
-                    }
-                };
-            }
+            return {
+                status: 202,
+                body: buildAsyncBookingAcceptedResponse(booking)
+            };
         })();
 
         if (idempotencyKey) {
@@ -936,7 +982,11 @@ app.post('/api/bookings', async (req, res) => {
             }
         });
 
-        const statusCode = error.code === 'BOOKING_QUEUE_FULL' ? 503 : 500;
+        const statusCode = error.code === 'BOOKING_QUEUE_FULL'
+            ? 503
+            : error.code === 'DISPATCH_UNAVAILABLE'
+                ? 502
+                : 500;
         return res.status(statusCode).json({
             success: false,
             message: error.message
@@ -973,7 +1023,11 @@ app.get('/api/bookings', (req, res) => {
 
     const history = bookings
         .filter((item) => item.phone === phone)
-        .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))
+        .sort((left, right) => {
+            const rightCreatedAt = right.createdAt || right.created_at || 0;
+            const leftCreatedAt = left.createdAt || left.created_at || 0;
+            return new Date(rightCreatedAt) - new Date(leftCreatedAt);
+        })
         .slice(0, limit);
 
     logger.info('Booking history lookup succeeded.', {
@@ -993,13 +1047,13 @@ app.get('/api/bookings', (req, res) => {
     });
 });
 
-app.get('/api/bookings/:id', (req, res) => {
-    const booking = bookings.find((item) => item.id === req.params.id);
+app.get('/api/bookings/:id', async (req, res) => {
+    const booking = bookings.find((item) => item.id === req.params.id || item.taskId === req.params.id);
 
     if (!booking) {
         logger.warn('Booking lookup failed. Booking not found.', {
             request_id: req.requestId,
-            booking_id: req.params.id
+            booking_lookup_id: req.params.id
         });
 
         return res.status(404).json({
@@ -1008,14 +1062,35 @@ app.get('/api/bookings/:id', (req, res) => {
         });
     }
 
+    let responseBooking = booking;
+
+    if (booking.taskId) {
+        try {
+            const dispatchState = await fetchDispatchBookingStatus(booking.taskId, {
+                request_id: req.requestId
+            });
+            responseBooking = mergeBookingWithDispatchState(booking, dispatchState);
+        } catch (error) {
+            logger.warn('Booking lookup could not refresh dispatch state. Falling back to local data.', {
+                request_id: req.requestId,
+                booking_lookup_id: req.params.id,
+                booking_id: booking.id,
+                task_id: booking.taskId,
+                error: error.message
+            });
+        }
+    }
+
     logger.info('Booking lookup succeeded.', {
         request_id: req.requestId,
-        booking_id: req.params.id
+        booking_lookup_id: req.params.id,
+        booking_id: booking.id,
+        task_id: booking.taskId
     });
 
     return res.json({
         success: true,
-        data: booking
+        data: responseBooking
     });
 });
 
@@ -1044,13 +1119,12 @@ const startServer = (port) => {
 
         logger.info('Server is listening.', {
             port: activePort,
-            qr_page_url: `http://localhost:${activePort}/`,
+            root_url: `http://localhost:${activePort}/`,
             booking_page_url: `http://localhost:${activePort}/booking.html`,
             booking_status_url: `http://localhost:${activePort}/status.html`,
             health_check_url: `http://localhost:${activePort}/api/health`,
             system_logs_url: `http://localhost:${activePort}/api/system/logs`,
-            thingsboard_logs_url: `http://localhost:${activePort}/api/thingsboard/logs`,
-            thingsboard_url: THINGSBOARD_URL
+            dispatch_api_url: DISPATCH_API_URL
         });
 
         if (activePort !== DEFAULT_PORT) {
@@ -1087,11 +1161,10 @@ process.on('unhandledRejection', (reason) => {
 });
 
 ensureStorage()
-    .then(async () => {
-        await verifyThingsBoardConnection();
+    .then(() => {
         startServer(DEFAULT_PORT);
     })
     .catch((error) => {
-        logger.error('Failed to initialize storage or connect to ThingsBoard.', error);
+        logger.error('Failed to initialize booking server.', error);
         process.exit(1);
     });

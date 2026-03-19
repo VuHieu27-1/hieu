@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Booking Status</title>
     <link rel="stylesheet" href="/css/style.css">
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="app-shell app-booking">
     <div class="ambient ambient-booking"></div>
@@ -22,12 +21,12 @@
         <section class="booking-hero">
             <div>
                 <h1 class="booking-title">Booking Status</h1>
-                <p class="booking-subtitle">This page updates automatically every few seconds.</p>
+                <p class="booking-subtitle">This page refreshes automatically every few seconds.</p>
             </div>
 
             <div class="booking-meta">
                 <div class="booking-meta-item">
-                    <span class="booking-meta-label">Booking ID</span>
+                    <span class="booking-meta-label">Task ID</span>
                     <strong id="status-booking-id">-</strong>
                 </div>
                 <div class="booking-meta-item">
@@ -38,7 +37,27 @@
         </section>
 
         <section class="glass-panel booking-form-shell">
-            <div id="status-feedback" class="history-feedback history-feedback-info">Loading booking status...</div>
+            <div id="status-feedback" class="history-feedback history-feedback-error hidden"></div>
+
+            <section id="status-spotlight" class="status-spotlight status-spotlight-waiting" aria-live="polite">
+                <div class="status-spotlight-copy">
+                    <span id="status-phase-pill" class="status-phase-pill">Finding driver</span>
+                    <h2 id="status-headline" class="status-headline">Broadcasting your booking to nearby drivers</h2>
+                    <p id="status-description" class="status-description">The system is contacting nearby buggy drivers now. Please keep this page open while we wait for an acceptance.</p>
+                </div>
+
+                <div class="status-spotlight-side">
+                    <div class="status-beacon">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div id="status-driver-banner" class="status-driver-banner hidden">
+                        <strong id="status-driver-banner-vehicle">buggy--</strong>
+                        <p id="status-driver-banner-copy">Waiting for driver assignment</p>
+                    </div>
+                </div>
+            </section>
 
             <div class="status-grid">
                 <article class="status-card">
@@ -67,8 +86,23 @@
                 </article>
 
                 <article class="status-card">
-                    <span class="status-card-label">Vehicle plate</span>
+                    <span class="status-card-label">Assigned vehicle</span>
                     <strong id="status-vehicle-plate">Waiting</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Driver name</span>
+                    <strong id="status-driver-name">Waiting</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Driver phone</span>
+                    <strong id="status-driver-phone">Waiting</strong>
+                </article>
+
+                <article class="status-card">
+                    <span class="status-card-label">Dispatch message</span>
+                    <strong id="status-task-message">Waiting</strong>
                 </article>
             </div>
 

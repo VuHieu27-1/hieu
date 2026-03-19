@@ -1,4 +1,14 @@
 services:
+  mock-dispatch-server:
+    profiles: ["mock"]
+    build:
+      context: ../mock_dispatch_server
+      dockerfile: Dockerfile
+    container_name: mock-dispatch-server
+    restart: unless-stopped
+    environment:
+      PORT: 4001
+
   buggy-booking-system:
     build:
       context: .
@@ -9,7 +19,6 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      THINGSBOARD_URL: ${THINGSBOARD_URL:-https://eu.thingsboard.cloud/entities/devices/all}
-      THINGSBOARD_ACCESS_TOKEN: ${THINGSBOARD_ACCESS_TOKEN:-7rvm1WzxLQz8c3cKdEU0}
+      DISPATCH_API_URL: ${DISPATCH_API_URL:-http://mock-dispatch-server:4001}
     volumes:
       - ./data:/app/data

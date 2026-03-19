@@ -2,7 +2,8 @@
 node_modules/
 
 # Runtime data
-data/logs/
+data/logs/*
+!data/logs/.gitkeep
 *.log
 
 # Environment files

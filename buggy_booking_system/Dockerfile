@@ -14,6 +14,7 @@ RUN mkdir -p /app/data/logs && chown -R node:node /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV DISPATCH_API_URL=http://host.docker.internal:4001
 
 EXPOSE 3000
 

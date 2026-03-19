@@ -1,0 +1,274 @@
+[
+  {
+    "id": "BK-20260319-0001",
+    "taskId": "BKG-20260319-6852F9",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975292",
+    "passengerCount": 3,
+    "bookingType": "NOW",
+    "scheduledTime": null,
+    "pickup": {
+      "lat": 16.0703,
+      "lng": 108.2227,
+      "locationName": "28, Đường Phan Đình Phùng, Phước Ninh, Phường Hải Châu, Thành phố Đà Nẵng, 50207, Việt Nam"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-19T18:32:08.221Z",
+    "endTime": "2026-03-19T19:02:08.221Z",
+    "pickupTime": "2026-03-19T18:32:08.221Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T18:32:08.237Z"
+    },
+    "createdAt": "2026-03-19T18:32:08.237Z"
+  },
+  {
+    "id": "BK-20260319-0002",
+    "taskId": "BKG-20260319-B225CA",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975222",
+    "passengerCount": 3,
+    "bookingType": "NOW",
+    "scheduledTime": null,
+    "pickup": {
+      "lat": 16.07065,
+      "lng": 108.221011,
+      "locationName": "46, Đường Phan Đình Phùng, Phước Ninh, Phường Hải Châu, Thành phố Đà Nẵng, 50207, Việt Nam"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-19T18:41:25.474Z",
+    "endTime": "2026-03-19T19:11:25.474Z",
+    "pickupTime": "2026-03-19T18:41:25.474Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T18:41:25.484Z"
+    },
+    "createdAt": "2026-03-19T18:41:25.484Z"
+  },
+  {
+    "id": "BK-20260319-0003",
+    "taskId": "BKG-20260319-8CDF7F",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975222",
+    "passengerCount": 3,
+    "bookingType": "NOW",
+    "scheduledTime": null,
+    "pickup": {
+      "lat": 16.0703,
+      "lng": 108.2227,
+      "locationName": "K596 Hoàng Diệu"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-19T19:08:30.481Z",
+    "endTime": "2026-03-19T19:38:30.481Z",
+    "pickupTime": "2026-03-19T19:08:30.481Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T19:08:30.486Z"
+    },
+    "createdAt": "2026-03-19T19:08:30.486Z"
+  },
+  {
+    "id": "BK-20260319-0004",
+    "taskId": "BKG-20260319-764090",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": null,
+    "passengerCount": 1,
+    "bookingType": "NOW",
+    "scheduledTime": null,
+    "pickup": {
+      "lat": 16.0703,
+      "lng": 108.2227,
+      "locationName": "28, Đường Phan Đình Phùng, Phước Ninh, Phường Hải Châu, Thành phố Đà Nẵng, 50207, Việt Nam"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-19T19:34:34.329Z",
+    "endTime": "2026-03-19T20:04:34.329Z",
+    "pickupTime": "2026-03-19T19:34:34.329Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T19:34:34.349Z"
+    },
+    "createdAt": "2026-03-19T19:34:34.350Z"
+  },
+  {
+    "id": "BK-20260319-0005",
+    "taskId": "BKG-20260319-E3D843",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975222",
+    "passengerCount": 1,
+    "bookingType": "SCHEDULED",
+    "scheduledTime": "2026-03-20T12:47:00.000Z",
+    "pickup": {
+      "lat": 16.070516,
+      "lng": 108.22202,
+      "locationName": "Kiệt 515,Đường Hoàng Diệu,Thành phố Đà Nẵng"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-20T12:47:00.000Z",
+    "endTime": "2026-03-20T13:17:00.000Z",
+    "pickupTime": "2026-03-20T12:47:00.000Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T19:37:18.550Z"
+    },
+    "createdAt": "2026-03-19T19:37:18.550Z"
+  },
+  {
+    "id": "BK-20260319-0006",
+    "taskId": "BKG-20260319-CBEE79",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975222",
+    "passengerCount": 1,
+    "bookingType": "SCHEDULED",
+    "scheduledTime": "2026-03-20T00:47:00.000Z",
+    "pickup": {
+      "lat": 16.0703,
+      "lng": 108.2227,
+      "locationName": "Kiệt 515,Đường Hoàng Diệu,Thành phố Đà Nẵng"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-20T00:47:00.000Z",
+    "endTime": "2026-03-20T01:17:00.000Z",
+    "pickupTime": "2026-03-20T00:47:00.000Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T19:38:20.240Z"
+    },
+    "createdAt": "2026-03-19T19:38:20.240Z"
+  },
+  {
+    "id": "BK-20260319-0007",
+    "taskId": "BKG-20260319-AB48AA",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975222",
+    "passengerCount": 1,
+    "bookingType": "NOW",
+    "scheduledTime": null,
+    "pickup": {
+      "lat": 16.070516,
+      "lng": 108.22202,
+      "locationName": "28, Đường Phan Đình Phùng, Phước Ninh, Phường Hải Châu, Thành phố Đà Nẵng, 50207, Việt Nam"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-19T19:42:29.712Z",
+    "endTime": "2026-03-19T20:12:29.712Z",
+    "pickupTime": "2026-03-19T19:42:29.712Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T19:42:29.727Z"
+    },
+    "createdAt": "2026-03-19T19:42:29.727Z"
+  },
+  {
+    "id": "BK-20260319-0008",
+    "taskId": "BKG-20260319-F31031",
+    "status": "PENDING_BROADCAST",
+    "statusMessage": "Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...",
+    "guestName": "Chill Music",
+    "phone": "0934975222",
+    "passengerCount": 1,
+    "bookingType": "NOW",
+    "scheduledTime": null,
+    "pickup": {
+      "lat": 16.054407,
+      "lng": 108.202167,
+      "locationName": "Kiệt 515,Đường Hoàng Diệu,Hà Nội"
+    },
+    "dropoff": {
+      "lat": 15.584435,
+      "lng": 108.472851,
+      "locationName": "02 Chương Dương ,Thành phố Đà Nẵng"
+    },
+    "startTime": "2026-03-19T19:47:58.895Z",
+    "endTime": "2026-03-19T20:17:58.895Z",
+    "pickupTime": "2026-03-19T19:47:58.895Z",
+    "bookingStatus": {
+      "code": "PENDING_BROADCAST",
+      "label": "Pending broadcast",
+      "eta_minutes": null,
+      "vehicle_plate": null,
+      "can_change_pickup": true,
+      "can_cancel": true,
+      "updated_at": "2026-03-19T19:47:58.911Z"
+    },
+    "createdAt": "2026-03-19T19:47:58.911Z"
+  }
+]

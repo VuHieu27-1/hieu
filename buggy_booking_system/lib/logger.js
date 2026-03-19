@@ -72,8 +72,8 @@ const formatField = (label, value) => {
 const joinFields = (fields) => fields.filter(Boolean).join(' | ');
 
 const buildCategory = (message, meta = {}) => {
-    if (meta.category === 'thingsboard') {
-        return 'THINGSBOARD';
+    if (meta.category === 'dispatch') {
+        return 'DISPATCH';
     }
 
     if (message.startsWith('HTTP request')) {
@@ -236,13 +236,23 @@ const buildSummary = (message, meta = {}) => {
         ]);
     }
 
-    if (message === 'Booking created and synced successfully.') {
+    if (message === 'Booking saved locally.') {
         return joinFields([
-            'Booking created',
+            'Booking saved',
             formatField('req', meta.request_id),
             formatField('booking', meta.booking_id),
             formatField('customer', meta.customer_name),
-            formatField('vehicle', meta.vehicle_type)
+            formatField('passengers', meta.passenger_count)
+        ]);
+    }
+
+    if (message === 'Booking task accepted for asynchronous broadcast.') {
+        return joinFields([
+            'Dispatch accepted',
+            formatField('req', meta.request_id),
+            formatField('booking', meta.booking_id),
+            formatField('task', meta.task_id),
+            formatField('status', meta.status)
         ]);
     }
 
@@ -271,20 +281,23 @@ const buildSummary = (message, meta = {}) => {
         ]);
     }
 
-    if (message === 'ThingsBoard startup connection verified successfully.') {
+    if (message === 'Idempotent booking request reused existing result.') {
         return joinFields([
-            'Startup connection OK',
-            formatField('status', meta.telemetry_status),
-            formatField('url', meta.telemetry_url)
+            'Idempotency hit',
+            formatField('req', meta.request_id),
+            formatField('key', meta.idempotency_key),
+            formatField('booking', meta.booking_id),
+            formatField('task', meta.task_id)
         ]);
     }
 
-    if (message.startsWith('ThingsBoard sync success for booking')) {
+    if (message === 'Booking lookup could not refresh dispatch state. Falling back to local data.') {
         return joinFields([
-            'Booking sync OK',
+            'Dispatch refresh failed',
+            formatField('req', meta.request_id),
             formatField('booking', meta.booking_id),
-            formatField('telemetry', meta.telemetry_status),
-            formatField('attributes', meta.attributes_status)
+            formatField('task', meta.task_id),
+            formatField('error', meta.error)
         ]);
     }
 
@@ -292,8 +305,9 @@ const buildSummary = (message, meta = {}) => {
         return joinFields([
             'Server ready',
             formatField('port', meta.port),
-            formatField('qr', meta.qr_generator_url),
-            formatField('booking', meta.booking_page_url)
+            formatField('root', meta.root_url),
+            formatField('booking', meta.booking_page_url),
+            formatField('status', meta.booking_status_url)
         ]);
     }
 
@@ -340,12 +354,14 @@ const extractExtraDetails = (message, meta = {}) => {
         'Booking history lookup failed. Phone is required.': ['request_id'],
         'Booking history lookup failed. Phone format is invalid.': ['request_id', 'phone'],
         'Booking validation failed.': ['request_id', 'message'],
-        'Booking created and synced successfully.': ['request_id', 'booking_id', 'customer_name', 'vehicle_type'],
+        'Booking saved locally.': ['request_id', 'booking_id', 'customer_name', 'passenger_count'],
+        'Booking task accepted for asynchronous broadcast.': ['request_id', 'booking_id', 'task_id', 'status'],
         'Booking processing failed.': ['request_id', 'booking_id', 'error'],
         'Booking lookup succeeded.': ['request_id', 'booking_id'],
         'Booking lookup failed. Booking not found.': ['request_id', 'booking_id'],
-        'ThingsBoard startup connection verified successfully.': ['category', 'telemetry_status', 'telemetry_url'],
-        'Server is listening.': ['port', 'qr_generator_url', 'booking_page_url'],
+        'Idempotent booking request reused existing result.': ['request_id', 'idempotency_key', 'booking_id', 'task_id'],
+        'Booking lookup could not refresh dispatch state. Falling back to local data.': ['request_id', 'booking_id', 'task_id', 'error'],
+        'Server is listening.': ['port', 'root_url', 'booking_page_url', 'booking_status_url'],
         'Storage initialized successfully.': ['bookings_loaded', 'latest_log_file'],
         'Initializing storage directories.': ['data_dir', 'log_dir'],
         'Bookings storage file found.': ['bookings_file'],
