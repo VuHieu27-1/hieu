@@ -10,6 +10,7 @@ body{
     --hieuungsang: 0 0 10px rgba(255,255,255,0.6);
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }
 .note{
     font-family: var(--fontchuchung);
@@ -251,15 +252,52 @@ body{
     background: linear-gradient(135deg,  rgba(255, 171, 171, 0.7), rgba(201, 26, 99, 0.8) );
 }
 @media (max-width: 700px) {
+    #menu p{
+        width: auto;
+        font-size: 45px;
+        left: 10px;
+        padding-left: 0;
+    }
+    .text_center{
+        font-size: 70px;
+        padding-top: 170px;
+        padding-bottom: 30px;
+    }
+    #content_block{
+        width: 95%;
+    }
+    .block_content_task{
+        transform: translateY(0px);
+    }
+    #add_tasks{
+        width: 92%;
+        padding: 20px 15px;
+    }
+    #add_tasks h3{
+        font-size: 45px;
+    }
+    .note_1
+    {
+        position: static;
+        margin-bottom: 15px;
+    }
     #input_task_name{
         transform: translateX(0px);
         margin: 20px auto;
-        width: 70%;
+        width: 90%;
         display: block;
+        padding: 20px;
     }
     #add_task_btn{
         display: block;
         margin: 20px auto;
+    }
+    #select_color{
+        width: 100%;
+        margin: 20px 0;
+    }
+    .color-block{
+        margin: 10px;
     }
 }
 /* ==================================set_style_page_task=============================== */
@@ -487,6 +525,34 @@ body{
     }
     #task_assignment{
         height: 100%;
+    }
+    #task_assignment h1{
+        font-size: 40px;
+        padding-top: 120px;
+    }
+    #box_task_bar{
+        width: 95%;
+    }
+    #buttom_add{
+        width: 90%;
+    }
+    #buttom_add input{
+        width: 80%;
+        font-size: 18px;
+    }
+    .filter_priority{
+        position: static;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .filter_priority h4{
+        margin-top: 10px;
+    }
+    .list_task_bar{
+        padding: 20px 10px 20px 10px;
+    }
+    .list_task_bar .item_task_bar{
+        width: 90%;
     }
     .item_task_bar i{
         padding: 10px;
