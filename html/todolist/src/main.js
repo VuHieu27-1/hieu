@@ -165,17 +165,18 @@ setInterval(() => {
 },10);
 function change_status_tasks()
 {
-    let status_icon_work = document.querySelector('#status_icon_work');
-    let status_icon_success = document.querySelector('#status_icon_success');
-    data.forEach((task) => {
+    data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
+    let status_icon_work = document.querySelectorAll('#status_icon_work');
+    let status_icon_success = document.querySelectorAll('#status_icon_success');
+    data.forEach((task,index) => {
     if(task.status_success_tasks == true)
     {
-        status_icon_work.classList.add('add_status_icon_work');
-        status_icon_success.classList.add('add_status_icon_success');
+        status_icon_work[index].classList.add('add_status_icon_work');
+        status_icon_success[index].classList.add('add_status_icon_success');
     }else
     {
-        status_icon_work.classList.remove('add_status_icon_work');
-        status_icon_success.classList.remove('add_status_icon_success');
+        status_icon_work[index].classList.remove('add_status_icon_work');
+        status_icon_success[index].classList.remove('add_status_icon_success');
     }
     });
 }
