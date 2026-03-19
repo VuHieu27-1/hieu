@@ -15,6 +15,9 @@ const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
 const PHONE_REGEX = /^(\+84|84|0)[0-9]{9,10}$/;
 const RAW_THINGSBOARD_URL = process.env.THINGSBOARD_URL || 'https://eu.thingsboard.cloud/entities/devices/all';
 const THINGSBOARD_ACCESS_TOKEN = process.env.THINGSBOARD_ACCESS_TOKEN || '7rvm1WzxLQz8c3cKdEU0';
+const REVERSE_GEOCODE_URL = process.env.REVERSE_GEOCODE_URL || 'https://nominatim.openstreetmap.org/reverse';
+const LOCATION_HTTP_TIMEOUT_MS = Number(process.env.LOCATION_HTTP_TIMEOUT_MS || 15000);
+const SERVICE_USER_AGENT = 'd-soft-buggy-booking-system/1.0';
 
 const logger = createLogger({
     logDir: LOG_DIR,
@@ -159,6 +162,49 @@ const generateBookingId = () => {
 
 const sanitizeString = (value) => String(value || '').trim();
 
+const normalizeIsoDateTime = (value) => {
+    const rawValue = sanitizeString(value);
+
+    if (!rawValue) {
+        return null;
+    }
+
+    const parsed = new Date(rawValue);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
+const normalizeDeviceLocation = (payload) => {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return null;
+    }
+
+    const latitude = Number(payload.latitude);
+    const longitude = Number(payload.longitude);
+
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+        return null;
+    }
+
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        return null;
+    }
+
+    const accuracy = Number(payload.accuracy);
+    const resolvedAddress = sanitizeString(payload.resolved_address || payload.resolvedAddress);
+    const fullAddress = sanitizeString(payload.full_address || payload.fullAddress);
+    const geocodeSource = sanitizeString(payload.geocode_source || payload.geocodeSource);
+
+    return {
+        latitude: Number(latitude.toFixed(6)),
+        longitude: Number(longitude.toFixed(6)),
+        accuracy: Number.isFinite(accuracy) && accuracy > 0 ? Math.round(accuracy) : null,
+        resolved_address: resolvedAddress || fullAddress || null,
+        full_address: fullAddress || resolvedAddress || null,
+        geocode_source: geocodeSource || null,
+        captured_at: normalizeIsoDateTime(payload.captured_at || payload.capturedAt) || new Date().toISOString()
+    };
+};
+
 const buildInitialBookingStatus = () => ({
     code: 'pending_dispatch',
     label: 'Pending dispatch',
@@ -180,6 +226,7 @@ const createBookingRecord = (normalized) => ({
     passenger_count: normalized.passenger_count || 1,
     pickup_area: normalized.pickup_area || null,
     dropoff_point: normalized.dropoff_point || null,
+    device_location: normalized.device_location || null,
     booking_status: buildInitialBookingStatus(),
     created_at: new Date().toISOString(),
     sync_status: 'pending',
@@ -338,6 +385,115 @@ const postJson = (targetUrl, payload, meta = {}) => new Promise((resolve, reject
     request.end();
 });
 
+const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
+    const parsedUrl = new URL(targetUrl);
+    const transport = parsedUrl.protocol === 'https:' ? https : http;
+    const startedAt = Date.now();
+
+    logger.debug('Outgoing HTTP request started.', {
+        ...meta,
+        url: targetUrl,
+        method: 'GET'
+    });
+
+    const request = transport.request({
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+        path: `${parsedUrl.pathname}${parsedUrl.search}`,
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Accept-Language': meta.accept_language || 'vi,en',
+            'User-Agent': SERVICE_USER_AGENT
+        }
+    }, (response) => {
+        let responseBody = '';
+
+        response.on('data', (chunk) => {
+            responseBody += chunk;
+        });
+
+        response.on('end', () => {
+            const durationMs = Date.now() - startedAt;
+
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+                const error = new Error(`HTTP ${response.statusCode}: ${responseBody || 'Empty response'}`);
+                logger.error('Outgoing HTTP request failed.', {
+                    ...meta,
+                    url: targetUrl,
+                    status_code: response.statusCode,
+                    duration_ms: durationMs,
+                    response_body: responseBody,
+                    error: error.message
+                });
+                reject(error);
+                return;
+            }
+
+            try {
+                const parsedBody = JSON.parse(responseBody);
+                logger.info('Outgoing HTTP request completed successfully.', {
+                    ...meta,
+                    url: targetUrl,
+                    status_code: response.statusCode,
+                    duration_ms: durationMs
+                });
+
+                resolve({
+                    ok: true,
+                    status: response.statusCode,
+                    body: parsedBody
+                });
+            } catch (error) {
+                logger.error('Outgoing HTTP request failed.', {
+                    ...meta,
+                    url: targetUrl,
+                    status_code: response.statusCode,
+                    duration_ms: durationMs,
+                    response_body: responseBody,
+                    error: error.message
+                });
+                reject(error);
+            }
+        });
+    });
+
+    request.setTimeout(LOCATION_HTTP_TIMEOUT_MS, () => {
+        request.destroy(new Error(`Request timed out after ${LOCATION_HTTP_TIMEOUT_MS}ms.`));
+    });
+
+    request.on('error', (error) => {
+        logger.error('Outgoing HTTP request raised a network error.', {
+            ...meta,
+            url: targetUrl,
+            error: {
+                message: error.message,
+                stack: error.stack
+            }
+        });
+        reject(error);
+    });
+
+    request.end();
+});
+
+const reverseGeocodeCoordinates = async (latitude, longitude, language = 'vi,en') => {
+    const targetUrl = new URL(REVERSE_GEOCODE_URL);
+    targetUrl.searchParams.set('format', 'jsonv2');
+    targetUrl.searchParams.set('lat', String(latitude));
+    targetUrl.searchParams.set('lon', String(longitude));
+    targetUrl.searchParams.set('zoom', '20');
+    targetUrl.searchParams.set('addressdetails', '1');
+
+    const response = await getJson(targetUrl.toString(), {
+        category: 'location',
+        action: 'reverse_geocode',
+        accept_language: language
+    });
+
+    return response.body;
+};
+
 const buildThingsBoardEndpoint = (pathName) => new URL(pathName, THINGSBOARD_URL).toString();
 
 const verifyThingsBoardConnection = async () => {
@@ -382,6 +538,11 @@ const buildThingsBoardPayload = (booking) => ({
         passenger_count: booking.passenger_count || 1,
         pickup_area: booking.pickup_area || '',
         dropoff_point: booking.dropoff_point || '',
+        pickup_latitude: booking.device_location?.latitude ?? null,
+        pickup_longitude: booking.device_location?.longitude ?? null,
+        pickup_accuracy_m: booking.device_location?.accuracy ?? null,
+        pickup_resolved_address: booking.device_location?.resolved_address || booking.pickup_area || '',
+        pickup_full_address: booking.device_location?.full_address || '',
         created_at: booking.created_at,
         booking_created: 1
     }
@@ -398,6 +559,10 @@ const sendBookingToThingsBoard = async (booking) => {
         last_passenger_count: booking.passenger_count || 1,
         last_pickup_area: booking.pickup_area || '',
         last_dropoff_point: booking.dropoff_point || '',
+        last_pickup_latitude: booking.device_location?.latitude ?? null,
+        last_pickup_longitude: booking.device_location?.longitude ?? null,
+        last_pickup_accuracy_m: booking.device_location?.accuracy ?? null,
+        last_pickup_resolved_address: booking.device_location?.resolved_address || booking.pickup_area || '',
         last_booking_created_at: booking.created_at
     };
 
@@ -448,7 +613,8 @@ const validateBooking = (payload) => {
         pickup_time_mode: sanitizeString(payload.pickup_time_mode || 'now'),
         passenger_count: Number.parseInt(payload.passenger_count, 10) || 0,
         pickup_area: sanitizeString(payload.pickup_area),
-        dropoff_point: sanitizeString(payload.dropoff_point)
+        dropoff_point: sanitizeString(payload.dropoff_point),
+        device_location: normalizeDeviceLocation(payload.device_location)
     };
 
     if (!normalized.name || !normalized.phone || !normalized.pickup_area || !normalized.dropoff_point || !normalized.pickup_time) {
@@ -494,7 +660,8 @@ const validateBooking = (payload) => {
             pickup_time_mode: normalized.pickup_time_mode,
             passenger_count: normalized.passenger_count,
             pickup_area: normalized.pickup_area || null,
-            dropoff_point: normalized.dropoff_point || null
+            dropoff_point: normalized.dropoff_point || null,
+            device_location: normalized.device_location
         }
     };
 };
@@ -554,6 +721,42 @@ app.get('/status.html', (req, res) => {
 });
 
 app.use(express.static(PUBLIC_DIR));
+
+app.get('/api/location/reverse-geocode', async (req, res) => {
+    const latitude = Number.parseFloat(req.query.lat);
+    const longitude = Number.parseFloat(req.query.lng);
+    const language = sanitizeString(req.headers['accept-language']) || 'vi,en';
+
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        return res.status(400).json({
+            success: false,
+            message: 'Latitude/longitude is invalid.'
+        });
+    }
+
+    try {
+        const data = await reverseGeocodeCoordinates(Number(latitude.toFixed(6)), Number(longitude.toFixed(6)), language);
+        return res.json({
+            success: true,
+            data
+        });
+    } catch (error) {
+        logger.error('Reverse geocode lookup failed.', {
+            request_id: req.requestId,
+            latitude,
+            longitude,
+            error: {
+                message: error.message,
+                stack: error.stack
+            }
+        });
+
+        return res.status(502).json({
+            success: false,
+            message: 'Unable to map the current device location.'
+        });
+    }
+});
 
 app.get('/api/health', (req, res) => {
     return res.json({

@@ -49,10 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const REVERSE_GEOCODE_ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
     const LOCATION_SAMPLE_WINDOW_MS = 8000;
     const LOCATION_TARGET_ACCURACY_METERS = 20;
+    const LOCATION_AUTO_FILL_DELAY_MS = 700;
     let historyLookupTimer = null;
     let isHistoryPanelOpen = false;
     let isResolvingLocation = false;
     let hasSubmitted = false;
+    let hasAutoLocationAttempted = false;
+    let deviceLocationSnapshot = null;
     const touchedFields = new Set();
 
     const formatDateTimeLocal = (date) => {
@@ -152,6 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         detectLocationButton.textContent = isLoading ? 'Locating...' : 'Use GPS';
     };
 
+    const buildCoordinateLabel = (latitude, longitude) => `Lat ${latitude}, Lng ${longitude}`;
+
     const extractLocationName = (payload) => {
         const address = payload && payload.address ? payload.address : {};
 
@@ -164,6 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
             || address.attraction
             || address.resort
             || address.hotel
+            || address.office
+            || address.shop
             || address.beach
             || address.leisure
             || address.building
@@ -176,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Street address: house_number + road
         const houseNumber = address.house_number || '';
-        const road = address.road || address.pedestrian || '';
+        const road = address.road || address.pedestrian || address.footway || '';
 
         if (houseNumber && road) {
             parts.push(`${houseNumber} ${road}`);
@@ -185,7 +192,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Area: neighbourhood or suburb (ward/phường)
-        const area = address.neighbourhood || address.suburb || address.quarter || '';
+        const area = address.neighbourhood
+            || address.suburb
+            || address.quarter
+            || address.residential
+            || address.city_district
+            || address.village
+            || '';
         if (area) {
             parts.push(area);
         }
@@ -195,10 +208,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Fallback to display_name from Nominatim (full formatted address)
-        return payload.display_name || payload.name || '';
+        if (payload.display_name) {
+            return payload.display_name.split(',').slice(0, 3).join(', ').trim();
+        }
+
+        return payload.name || '';
     };
 
-    const reverseGeocode = async (latitude, longitude) => {
+    const extractFullAddress = (payload) => {
+        if (!payload) {
+            return '';
+        }
+
+        return payload.display_name || payload.name || extractLocationName(payload);
+    };
+
+    const reverseGeocodeDirect = async (latitude, longitude) => {
         const url = new URL(REVERSE_GEOCODE_ENDPOINT);
         url.searchParams.set('format', 'jsonv2');
         url.searchParams.set('lat', String(latitude));
@@ -219,10 +244,45 @@ document.addEventListener('DOMContentLoaded', () => {
         return response.json();
     };
 
-    const setPickupAreaValue = (value) => {
+    const reverseGeocodeViaServer = async (latitude, longitude) => {
+        const response = await fetch(`/api/location/reverse-geocode?lat=${encodeURIComponent(latitude)}&lng=${encodeURIComponent(longitude)}`);
+        const result = await parseResponse(response);
+
+        if (!response.ok || !result.success || !result.data) {
+            throw new Error(result.message || 'Unable to map your location.');
+        }
+
+        return result.data;
+    };
+
+    const resolveLocationDetails = async (latitude, longitude) => {
+        try {
+            const place = await reverseGeocodeViaServer(latitude, longitude);
+            return {
+                place,
+                source: 'server'
+            };
+        } catch (error) {
+            try {
+                const place = await reverseGeocodeDirect(latitude, longitude);
+                return {
+                    place,
+                    source: 'browser'
+                };
+            } catch (innerError) {
+                return null;
+            }
+        }
+    };
+
+    const setPickupAreaValue = (value, options = {}) => {
+        const { persist = true } = options;
         fields.pickupArea.value = value;
         updateSummary();
         validateForm();
+        if (persist) {
+            saveCache();
+        }
     };
 
     const getCurrentDevicePosition = async () => {
@@ -285,9 +345,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const buildDeviceLocationSnapshot = ({ latitude, longitude, accuracy, locationName, fullAddress, source }) => ({
+        latitude,
+        longitude,
+        accuracy,
+        resolved_address: locationName || buildCoordinateLabel(latitude, longitude),
+        full_address: fullAddress || locationName || buildCoordinateLabel(latitude, longitude),
+        geocode_source: source || 'coordinates',
+        captured_at: new Date().toISOString()
+    });
+
     const shouldShowError = (fieldKey) => hasSubmitted || touchedFields.has(fieldKey);
 
-    const fillPickupAreaFromDeviceLocation = async () => {
+    const fillPickupAreaFromDeviceLocation = async (options = {}) => {
+        const { automatic = false } = options;
+
+        if (automatic && fields.pickupArea.value.trim()) {
+            return;
+        }
+
         if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
             setLocationFeedback('Location requires HTTPS or localhost. Please enter pickup area manually.', 'error');
             return;
@@ -314,12 +390,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (permission.state === 'prompt') {
-                    setLocationFeedback('Please allow location access when your browser asks.', 'info');
+                    setLocationFeedback(automatic
+                        ? 'Allow location access so we can auto-fill your pickup area.'
+                        : 'Please allow location access when your browser asks.', 'info');
                 } else {
-                    setLocationFeedback('Detecting your current location as accurately as possible...', 'info');
+                    setLocationFeedback(automatic
+                        ? 'Detecting your current location to auto-fill pickup area...'
+                        : 'Detecting your current location as accurately as possible...', 'info');
                 }
             } else {
-                setLocationFeedback('Please allow location access when your browser asks.', 'info');
+                setLocationFeedback(automatic
+                    ? 'Allow location access so we can auto-fill your pickup area.'
+                    : 'Please allow location access when your browser asks.', 'info');
             }
 
             const position = await getBestDevicePosition();
@@ -328,22 +410,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const accuracy = typeof position.coords.accuracy === 'number'
                 ? Math.round(position.coords.accuracy)
                 : null;
-            const coordinateLabel = `Lat ${latitude}, Lng ${longitude}`;
+            const coordinateLabel = buildCoordinateLabel(latitude, longitude);
+            const resolvedLocation = await resolveLocationDetails(latitude, longitude);
+            const locationName = resolvedLocation ? extractLocationName(resolvedLocation.place) : '';
+            const fullAddress = resolvedLocation ? extractFullAddress(resolvedLocation.place) : '';
 
-            try {
-                const place = await reverseGeocode(latitude, longitude);
-                const locationName = extractLocationName(place);
+            deviceLocationSnapshot = buildDeviceLocationSnapshot({
+                latitude,
+                longitude,
+                accuracy,
+                locationName,
+                fullAddress,
+                source: resolvedLocation ? resolvedLocation.source : 'coordinates'
+            });
 
-                if (locationName) {
+            if (locationName) {
+                if (!automatic || !fields.pickupArea.value.trim()) {
                     setPickupAreaValue(locationName);
-                    setLocationFeedback(`Detected: ${locationName}${accuracy ? ` | Accuracy ${accuracy}m` : ''}`, 'success');
-                    return;
                 }
-            } catch (error) {
-                // Fall back to coordinates when reverse geocoding is unavailable.
+
+                const detailLabel = fullAddress && fullAddress !== locationName
+                    ? `${locationName} | ${fullAddress}`
+                    : locationName;
+
+                setLocationFeedback(`Detected: ${detailLabel}${accuracy ? ` | Accuracy ${accuracy}m` : ''}`, 'success');
+                return;
             }
 
-            setPickupAreaValue(coordinateLabel);
+            if (!automatic || !fields.pickupArea.value.trim()) {
+                setPickupAreaValue(coordinateLabel);
+            }
+
             setLocationFeedback(`Detected: ${coordinateLabel}${accuracy ? ` | Accuracy ${accuracy}m` : ''}`, 'success');
         } catch (error) {
             const fallbackMessage = error && error.code === 1
@@ -354,6 +451,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             setLocationLoadingState(false);
         }
+    };
+
+    const tryAutoFillPickupAreaFromDeviceLocation = () => {
+        if (hasAutoLocationAttempted || fields.pickupArea.value.trim()) {
+            return;
+        }
+
+        hasAutoLocationAttempted = true;
+
+        window.setTimeout(() => {
+            fillPickupAreaFromDeviceLocation({ automatic: true });
+        }, LOCATION_AUTO_FILL_DELAY_MS);
     };
 
     const updateScheduledFieldState = () => {
@@ -627,7 +736,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dropoff_point: fields.dropoffPoint.value.trim(),
             passenger_count: Number.parseInt(fields.passengerCount.value, 10) || 1,
             pickup_time_mode: fields.pickupTimeMode.value,
-            pickup_time: isScheduled ? new Date(fields.startTime.value).toISOString() : new Date().toISOString()
+            pickup_time: isScheduled ? new Date(fields.startTime.value).toISOString() : new Date().toISOString(),
+            device_location: deviceLocationSnapshot ? { ...deviceLocationSnapshot } : null
         };
 
         try {
@@ -648,6 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             localStorage.removeItem(CACHE_KEY);
             form.reset();
+            deviceLocationSnapshot = null;
             loadCache();
             fields.passengerCount.value = '1';
             fields.pickupTimeMode.value = 'now';
@@ -699,14 +810,22 @@ document.addEventListener('DOMContentLoaded', () => {
     ].forEach(([fieldKey, input]) => {
         input.addEventListener('input', () => {
             touchedFields.add(fieldKey);
+            if (fieldKey === 'pickupArea') {
+                deviceLocationSnapshot = null;
+            }
             updateSummary();
             validateForm();
+            saveCache();
         });
 
         input.addEventListener('change', () => {
             touchedFields.add(fieldKey);
+            if (fieldKey === 'pickupArea') {
+                deviceLocationSnapshot = null;
+            }
             updateSummary();
             validateForm();
+            saveCache();
         });
     });
 
@@ -714,10 +833,11 @@ document.addEventListener('DOMContentLoaded', () => {
         touchedFields.add('startTime');
         updateScheduledFieldState();
         validateForm();
+        saveCache();
     });
 
     detectLocationButton.addEventListener('click', () => {
-        fillPickupAreaFromDeviceLocation();
+        fillPickupAreaFromDeviceLocation({ automatic: false });
     });
 
     historyPhoneInput.addEventListener('input', scheduleHistoryLookup);
@@ -727,8 +847,14 @@ document.addEventListener('DOMContentLoaded', () => {
     updateScheduledFieldState();
     updateSummary();
     validateForm();
-    setLocationFeedback('Tap "Use GPS" and allow location access to auto-fill pickup area.', 'info');
     renderHistoryEmpty('No history loaded yet', 'Enter a phone number to check bookings.');
     setHistoryPanelState(false);
     contextBanner.classList.add('hidden');
+
+    if (fields.pickupArea.value.trim()) {
+        setLocationFeedback('Pickup area is already filled. Tap "Use GPS" if you want to refresh it from your current location.', 'info');
+    } else {
+        setLocationFeedback('We will try to auto-fill pickup area from your current location. You can also tap "Use GPS".', 'info');
+        tryAutoFillPickupAreaFromDeviceLocation();
+    }
 });

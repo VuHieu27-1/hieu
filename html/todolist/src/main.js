@@ -46,8 +46,11 @@ function renderBlocks() {
             <div class="block_content content_all" style="background:${task.color};">
                 <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_work">assignment</i></a>
                 <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_success">done_outline</i></a>
-                <p title="Click here to edit title" onclick="edit_task_name(${index})">${task.name}</p>
-                <i class="material-icons size_point" onclick="delete_block_task(${index})">delete</i>
+                <p title="${task.name}">${task.name}</p>
+                <div class="size_point">
+                    <i class="material-icons" title="Edit task" onclick="edit_task_name(${index})">edit</i>
+                    <i class="material-icons" title="Delete task" onclick="delete_block_task(${index})">delete</i>
+                </div>
             </div>
         `;
     });

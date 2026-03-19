@@ -11,6 +11,7 @@ body{
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    background: var(--background_color);
 }
 .note{
     font-family: var(--fontchuchung);
@@ -28,6 +29,7 @@ body{
 #home_page{
     min-height:100vh;
     background: linear-gradient(180deg, rgba(255,214,231,0.5), rgba(255,194,220,0.9));
+    padding-bottom: 48px;
 }
 #menu{
     position: relative;
@@ -67,14 +69,15 @@ body{
 }
 #content_block{
     margin-bottom: 50px;
-    display:inline-block;
-    text-align: center;
+    margin-inline: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
     width: min(1500px, 90%);
     height: 100%;
 }              
 .block_content{
-    display: inline-block;
-    margin: 20px;
     text-align: center;
     width: min(200px, 100%);
     height: 250px;
@@ -83,10 +86,8 @@ body{
     box-shadow: 0px 0px 10px rgba(170, 88, 88, 0.9);
     background: linear-gradient(135deg, rgba(160, 249, 255, 0.5), rgba(255, 255, 255, 0.6));
 }
-.block_content_task{
-    transform: translateY(-50px);
-}
 .block_content i{
+    display: inline-block;
     background: rgba(24, 186, 197, 0.3);
     margin-top: 80px;
     padding: 10px;
@@ -138,9 +139,8 @@ body{
     transition: 0.3s;
 }
 .content_all p{
-    cursor: pointer;
-    overflow: scroll;
-    scrollbar-width: none;
+    cursor: default;
+    overflow: hidden;
     transform: translateY(40px);
     height: 33px;
     margin: 0;
@@ -150,12 +150,33 @@ body{
     font-family: var(--fontchuchung);
 }
 .size_point{
-    transform: translateY(10px) !important;
-    margin: 55px !important;
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%) !important;
+    margin: 0 !important;
     padding: 0 !important;
+    width: auto;
+    display: flex;
+    align-items: center;
     background-color: transparent !important;
     font-size: 30px !important;
     cursor: default !important;
+    text-align: center;
+}
+.size_point i{
+    display: inline-block;
+    margin: 0 !important;
+    padding: 10px !important;
+    font-size: 28px !important;
+    color: var(--color_main);
+    background: transparent !important;
+    transform: none !important;
+}
+.size_point i:hover{
+    background: transparent !important;
+    opacity: 1 !important;
+    transform: scale(1.08) !important;
 }
 /* ==============================ADD_TASK==============================*/
 #add_tasks{
@@ -570,5 +591,12 @@ body{
     }
     .icon_edit_item{
         right: -15px;
+    }
+    div.size_point{
+        bottom: 18px;
+        gap: 14px;
+    }
+    div.size_point i{
+        font-size: 24px !important;
     }
 }
