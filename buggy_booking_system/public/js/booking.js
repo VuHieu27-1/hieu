@@ -51,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const HISTORY_LIMIT = 6;
     const HISTORY_AUTOLOAD_DELAY = 450;
     const STATUS_REDIRECT_DELAY_MS = 900;
-    const SUBMIT_REQUEST_TIMEOUT_MS = 30000;
     const LOCATION_SUGGESTION_DEBOUNCE_MS = 420;
     const LOCATION_SUGGESTION_LIMIT = 5;
     const LOCATION_SUGGESTION_MIN_QUERY_LENGTH = 2;
@@ -2369,26 +2368,6 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.textContent = isLoading ? 'Sending...' : 'Book Now';
     };
 
-    const fetchWithTimeout = async (resource, options = {}, timeoutMs = SUBMIT_REQUEST_TIMEOUT_MS) => {
-        const controller = new AbortController();
-        const timerId = window.setTimeout(() => controller.abort(), timeoutMs);
-
-        try {
-            return await fetch(resource, {
-                ...options,
-                signal: controller.signal
-            });
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                throw new Error('The booking request took too long to respond. Please try again.');
-            }
-
-            throw error;
-        } finally {
-            window.clearTimeout(timerId);
-        }
-    };
-
     requestAction.addEventListener('click', () => {
         closeOverlay();
     });
@@ -2466,7 +2445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            const response = await fetchWithTimeout('/api/bookings', {
+            const response = await fetch('/api/bookings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2476,10 +2455,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const result = await parseResponse(response);
-            const acceptedTaskId = bookingData.taskId;
 
             if (!response.ok) {
                 throw new Error(result.message || 'Unable to create booking.');
+            }
+
+            const acceptedTaskId = result?.taskId || bookingData.taskId;
+            const acceptedStatus = String(result?.status || '').trim();
+            const acceptedMessage = String(result?.message || '').trim() || 'Booking request was accepted by the dispatch server.';
+
+            if (!acceptedTaskId || !acceptedStatus) {
+                throw new Error('Dispatch server returned an invalid booking response.');
             }
 
             localStorage.removeItem(CACHE_KEY);
@@ -2499,8 +2485,8 @@ document.addEventListener('DOMContentLoaded', () => {
             openOverlay({
                 state: 'success',
                 kicker: 'Queued',
-                title: 'PENDING_BROADCAST',
-                message: 'Booking was created. Waiting for driver acceptance.',
+                title: acceptedStatus,
+                message: acceptedMessage,
                 bookingId: acceptedTaskId,
                 actionLabel: 'View status'
             });

@@ -55,17 +55,17 @@ document.addEventListener('DOMContentLoaded', () => {
         feedback.className = `history-feedback history-feedback-${type}`;
     };
 
-    const getStatusLabel = (booking) => String(booking?.status || 'PENDING_BROADCAST');
+    const getStatusLabel = (booking) => String(booking?.status || '').trim() || 'Unknown';
     const isAcceptedBooking = (booking) => getStatusLabel(booking).toUpperCase() === 'ACCEPTED';
-    const getAssignedVehicle = (booking) => booking?.assignedVehicle || 'Waiting';
+    const getAssignedVehicle = (booking) => booking?.assignedVehicle || '-';
     const getEtaText = (booking) => Number.isFinite(Number(booking?.estimatedPickupSeconds))
         ? `${Number(booking.estimatedPickupSeconds).toFixed(1)} s`
-        : 'Waiting';
+        : '-';
 
     const setSpotlightState = (booking) => {
         const accepted = isAcceptedBooking(booking);
         const vehicle = getAssignedVehicle(booking);
-        const driverName = booking?.driver?.name || 'Driver info is coming in';
+        const driverName = booking?.driver?.name || '-';
         const etaText = getEtaText(booking);
 
         elements.spotlight.classList.toggle('status-spotlight-waiting', !accepted);
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.phasePill.textContent = 'Finding driver';
         elements.headline.textContent = 'Broadcasting your booking to nearby drivers';
         elements.description.textContent = 'The system is contacting nearby buggy drivers now. Please keep this page open while we wait for an acceptance.';
-        elements.driverBannerVehicle.textContent = 'buggy--';
+        elements.driverBannerVehicle.textContent = '-';
         elements.driverBannerCopy.textContent = 'Waiting for driver assignment';
     };
 
@@ -124,8 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.pickupTime.textContent = formatDateTime(nextBooking?.scheduledTime || nextBooking?.pickupTime || nextBooking?.startTime);
         elements.eta.textContent = getEtaText(nextBooking);
         elements.vehiclePlate.textContent = getAssignedVehicle(nextBooking);
-        elements.driverName.textContent = nextBooking?.driver?.name || 'Waiting';
-        elements.taskMessage.textContent = nextBooking?.statusMessage || nextBooking?.message || 'Waiting';
+        elements.driverName.textContent = nextBooking?.driver?.name || '-';
+        elements.taskMessage.textContent = nextBooking?.statusMessage || nextBooking?.message || '-';
         setSpotlightState(nextBooking);
         setDetailEmphasis(nextBooking);
     };

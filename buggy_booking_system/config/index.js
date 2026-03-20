@@ -37,6 +37,14 @@ const assertPositiveInteger = (value, fieldName) => {
     return normalized;
 };
 
+const normalizeOptionalTimeoutMs = (value, fieldName) => {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    return assertPositiveInteger(value, fieldName);
+};
+
 const resolveProjectPath = (value, fieldName) => {
     const normalized = assertNonEmptyString(value, fieldName);
     return path.isAbsolute(normalized)
@@ -115,8 +123,8 @@ const loadConfig = () => {
             }
         },
         http: {
-            locationTimeoutMs: assertPositiveInteger(parsed?.http?.locationTimeoutMs, 'http.locationTimeoutMs'),
-            dispatchTimeoutMs: assertPositiveInteger(parsed?.http?.dispatchTimeoutMs, 'http.dispatchTimeoutMs')
+            locationTimeoutMs: normalizeOptionalTimeoutMs(parsed?.http?.locationTimeoutMs, 'http.locationTimeoutMs'),
+            dispatchTimeoutMs: normalizeOptionalTimeoutMs(parsed?.http?.dispatchTimeoutMs, 'http.dispatchTimeoutMs')
         },
         booking: {
             maxPendingBookings: assertPositiveInteger(parsed?.booking?.maxPendingBookings, 'booking.maxPendingBookings'),

@@ -140,8 +140,8 @@ Nhung bien nay quyet dinh he thong chay nhu the nao:
 - `DISPATCH_API_URL`: URL dispatch sau khi duoc normalize cho moi truong chay.
 - `REVERSE_GEOCODE_URL`: endpoint reverse geocode.
 - `SEARCH_GEOCODE_URL`: endpoint search geocode.
-- `LOCATION_HTTP_TIMEOUT_MS`: timeout cho geocode API.
-- `DISPATCH_HTTP_TIMEOUT_MS`: timeout cho dispatch API.
+- `LOCATION_HTTP_TIMEOUT_MS`: timeout cho geocode API. Neu config dat `null` thi backend se doi response khong gioi han o tang app.
+- `DISPATCH_HTTP_TIMEOUT_MS`: timeout cho dispatch API. Neu config dat `null` thi backend se doi response khong gioi han o tang app.
 - `MAX_PENDING_BOOKINGS`: gioi han so booking local giu trong bo nho.
 - `IDEMPOTENCY_TTL_MS`: thoi gian giu ket qua cua request co cung idempotency key.
 - `PENDING_BROADCAST_STATUS`: hang status ban dau sau khi gui booking.
@@ -582,7 +582,7 @@ Dieu nay giup code ngan hon, tranh phai `getElementById` lap di lap lai.
 - `HISTORY_LIMIT`: so booking history toi da hien thi
 - `HISTORY_AUTOLOAD_DELAY`: debounce khi tim lich su
 - `STATUS_REDIRECT_DELAY_MS`: delay truoc khi nhay sang trang status
-- `SUBMIT_REQUEST_TIMEOUT_MS`: timeout khi frontend goi `/api/bookings`
+- frontend submit booking hien tai khong con tu dat timeout, `fetch` se `await` toi khi server tra response hoac mang loi that su
 
 #### GPS va tracking
 
@@ -1124,12 +1124,6 @@ Tra ve `true/false` de quyet dinh co duoc submit hay khong.
 
 - khoa mo form khi dang submit
 
-#### `fetchWithTimeout`
-
-- wrapper `fetch` co timeout
-
-Ham nay rat quan trong vi neu dispatch server cham hoac chet, UI se khong quay loading vo han.
-
 #### `form.addEventListener('submit', async ...)`
 
 Day la block nghiep vu lon nhat cua frontend.
@@ -1500,7 +1494,7 @@ Day la luong chi tiet nhat de ban doc code:
 6. `applyLiveGpsSample()` cap nhat map, marker, accuracy, snapshot, va co the fill pickup.
 7. Khi user submit:
    - `form.addEventListener('submit', ...)`
-   - `fetchWithTimeout()`
+   - `fetch('/api/bookings', ...)`
 8. Truoc khi gui:
    - build `pickup` bang `buildBookingPointPayload()`
    - build `dropoff` bang `buildBookingPointPayload()`
@@ -1556,7 +1550,7 @@ Kiem tra:
 
 1. `dispatch.baseUrl` co dung khong
 2. dispatch server dich co dang chay khong
-3. `dispatch.baseUrl` va `http.dispatchTimeoutMs` co dung khong
+3. neu muon cho vo han thi `http.dispatchTimeoutMs` phai la `null`
 4. log trong `data/logs/latest.log`
 
 ### 14.2 Neu GPS khong chay

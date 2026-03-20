@@ -35,8 +35,6 @@ const DISPATCH_HTTP_TIMEOUT_MS = appConfig.http.dispatchTimeoutMs;
 const MAX_PENDING_BOOKINGS = appConfig.booking.maxPendingBookings;
 const IDEMPOTENCY_TTL_MS = appConfig.booking.idempotencyTtlMs;
 const SERVICE_USER_AGENT = 'd-soft-buggy-booking-system/1.2';
-const PENDING_BROADCAST_STATUS = 'PENDING_BROADCAST';
-const PENDING_BROADCAST_MESSAGE = 'Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...';
 
 const logger = createLogger({
     logDir: LOG_DIR,
@@ -69,6 +67,8 @@ const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
 const LOCATION_PROVIDER_BACKOFF_MS = 15 * 1000;
 
 const sanitizeString = (value) => String(value || '').trim();
+
+const hasRequestTimeout = (value) => Number.isInteger(value) && value > 0;
 
 const maskPhone = (phone) => {
     if (!phone || phone.length < 4) {
@@ -170,8 +170,8 @@ const rowToBooking = (row) => {
     return {
         id: row.id,
         taskId: row.task_id || null,
-        status: row.status || PENDING_BROADCAST_STATUS,
-        statusMessage: row.status_message || PENDING_BROADCAST_MESSAGE,
+        status: sanitizeString(row.status) || null,
+        statusMessage: sanitizeString(row.status_message) || null,
         guestName: row.guest_name,
         phone: row.phone || null,
         passengerCount: row.passenger_count,
@@ -356,8 +356,8 @@ const createBookingRecord = (normalized) => {
     return {
         id: generateBookingId(),
         taskId: normalized.taskId || null,
-        status: normalized.status || PENDING_BROADCAST_STATUS,
-        statusMessage: normalized.statusMessage || PENDING_BROADCAST_MESSAGE,
+        status: sanitizeString(normalized.status) || null,
+        statusMessage: sanitizeString(normalized.statusMessage) || null,
         guestName: normalized.guestName,
         phone: normalized.phone || null,
         passengerCount: normalized.passengerCount || 1,
@@ -418,12 +418,6 @@ const createBookingSafely = async (normalizedBooking, meta = {}, overrides = {})
     });
 };
 
-const buildAsyncBookingAcceptedResponse = (booking) => ({
-    taskId: booking.taskId,
-    status: booking.status || PENDING_BROADCAST_STATUS,
-    message: booking.statusMessage || PENDING_BROADCAST_MESSAGE
-});
-
 const buildDispatchEndpoint = (pathName) => {
     const baseUrl = DISPATCH_API_URL.endsWith('/')
         ? DISPATCH_API_URL
@@ -432,10 +426,12 @@ const buildDispatchEndpoint = (pathName) => {
     return new URL(String(pathName || '').replace(/^\/+/, ''), baseUrl).toString();
 };
 
-const normalizeDispatchAcceptedResponse = (payload) => {
-    const taskId = sanitizeString(payload?.taskId);
-    const status = sanitizeString(payload?.status || PENDING_BROADCAST_STATUS);
-    const message = sanitizeString(payload?.message || PENDING_BROADCAST_MESSAGE);
+const normalizeDispatchAcceptedResponse = (payload, fallbackTaskId = null) => {
+    const taskId = sanitizeString(payload?.taskId) || sanitizeString(fallbackTaskId);
+    const status = sanitizeString(payload?.status);
+    const message = payload?.message === null || payload?.message === undefined
+        ? null
+        : (sanitizeString(payload?.message) || null);
 
     if (!taskId || !status) {
         throw new Error('Dispatch server returned an invalid acceptance response.');
@@ -463,21 +459,13 @@ const mergeBookingWithDispatchState = (booking, dispatchState) => {
     const dispatchEta = Number.isFinite(Number(dispatchState.estimatedPickupSeconds))
         ? Number(dispatchState.estimatedPickupSeconds)
         : null;
-    const nextStatusMessage = shouldLockAcceptedState
-        ? (
-            isDispatchAccepted
-                ? (dispatchMessage || booking.statusMessage)
-                : (booking.statusMessage && booking.statusMessage !== PENDING_BROADCAST_MESSAGE
-                    ? booking.statusMessage
-                    : dispatchMessage || booking.statusMessage)
-        )
-        : (dispatchMessage || booking.statusMessage);
+    const nextStatusMessage = dispatchMessage || booking.statusMessage || null;
 
     return {
         ...booking,
         status: shouldLockAcceptedState
             ? 'ACCEPTED'
-            : (sanitizeString(dispatchState.status) || booking.status),
+            : (sanitizeString(dispatchState.status) || booking.status || null),
         statusMessage: nextStatusMessage,
         assignedVehicle: shouldLockAcceptedState
             ? (dispatchAssignedVehicle || booking.assignedVehicle || null)
@@ -633,9 +621,11 @@ const postJson = (targetUrl, payload, meta = {}) => new Promise((resolve, reject
         });
     });
 
-    request.setTimeout(DISPATCH_HTTP_TIMEOUT_MS, () => {
-        request.destroy(new Error(`Dispatch request timed out after ${DISPATCH_HTTP_TIMEOUT_MS}ms.`));
-    });
+    if (hasRequestTimeout(DISPATCH_HTTP_TIMEOUT_MS)) {
+        request.setTimeout(DISPATCH_HTTP_TIMEOUT_MS, () => {
+            request.destroy(new Error(`Dispatch request timed out after ${DISPATCH_HTTP_TIMEOUT_MS}ms.`));
+        });
+    }
 
     request.on('error', (error) => {
         logger.error('Outgoing HTTP request raised a network error.', {
@@ -725,9 +715,11 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
         });
     });
 
-    request.setTimeout(LOCATION_HTTP_TIMEOUT_MS, () => {
-        request.destroy(new Error(`Request timed out after ${LOCATION_HTTP_TIMEOUT_MS}ms.`));
-    });
+    if (hasRequestTimeout(LOCATION_HTTP_TIMEOUT_MS)) {
+        request.setTimeout(LOCATION_HTTP_TIMEOUT_MS, () => {
+            request.destroy(new Error(`Request timed out after ${LOCATION_HTTP_TIMEOUT_MS}ms.`));
+        });
+    }
 
     request.on('error', (error) => {
         logger.error('Outgoing HTTP request raised a network error.', {
@@ -792,7 +784,7 @@ const createDispatchBooking = async (payload, meta = {}) => {
             category: 'dispatch',
             action: 'create_booking'
         });
-        return normalizeDispatchAcceptedResponse(JSON.parse(response.body));
+        return normalizeDispatchAcceptedResponse(JSON.parse(response.body), payload?.taskId);
     } catch (error) {
         error.code = error.code || 'DISPATCH_UNAVAILABLE';
         throw error;
@@ -1427,7 +1419,7 @@ app.post('/api/bookings', async (req, res) => {
             const booking = await createBookingSafely(validation.normalizedBooking, {
                 request_id: req.requestId
             }, {
-                taskId,
+                taskId: dispatchAccepted.taskId,
                 status: dispatchAccepted.status,
                 statusMessage: dispatchAccepted.message
             });
@@ -1443,7 +1435,7 @@ app.post('/api/bookings', async (req, res) => {
             return {
                 status: 202,
                 body: {
-                    taskId: booking.taskId,
+                    taskId: dispatchAccepted.taskId,
                     status: dispatchAccepted.status,
                     message: dispatchAccepted.message
                 }

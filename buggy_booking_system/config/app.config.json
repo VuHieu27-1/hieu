@@ -23,8 +23,8 @@
     }
   },
   "http": {
-    "locationTimeoutMs": 15000,
-    "dispatchTimeoutMs": 40000
+    "locationTimeoutMs": null,
+    "dispatchTimeoutMs": null
   },
   "booking": {
     "maxPendingBookings": 200,

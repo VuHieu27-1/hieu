@@ -93,8 +93,8 @@ Key variables:
 - `dispatch.baseUrl`: dispatch server base URL used by the booking gateway
 - `geocoding.reverseGeocodeUrl`: reverse geocoding endpoint
 - `geocoding.searchGeocodeUrl`: forward geocoding endpoint
-- `http.locationTimeoutMs`: geocode request timeout
-- `http.dispatchTimeoutMs`: dispatch request timeout
+- `http.locationTimeoutMs`: timeout cho geocode request, dat `null` de cho response cho toi khi nhan duoc
+- `http.dispatchTimeoutMs`: timeout cho dispatch request, dat `null` de cho response cho toi khi nhan duoc
 
 ## Run Locally
 
