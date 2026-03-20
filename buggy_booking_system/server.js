@@ -444,20 +444,50 @@ const normalizeDispatchAcceptedResponse = (payload) => {
     return { taskId, status, message };
 };
 
+const isAcceptedDispatchState = (payload) => {
+    const status = String(payload?.status || '').toUpperCase();
+    return status === 'ACCEPTED' || Boolean(sanitizeString(payload?.assignedVehicle));
+};
+
 const mergeBookingWithDispatchState = (booking, dispatchState) => {
     if (!dispatchState) {
         return booking;
     }
 
+    const isAlreadyAccepted = isAcceptedDispatchState(booking);
+    const isDispatchAccepted = isAcceptedDispatchState(dispatchState);
+    const shouldLockAcceptedState = isAlreadyAccepted || isDispatchAccepted;
+    const dispatchMessage = sanitizeString(dispatchState.message);
+    const dispatchAssignedVehicle = sanitizeString(dispatchState.assignedVehicle);
+    const dispatchDriver = normalizeDriver(dispatchState.driver);
+    const dispatchEta = Number.isFinite(Number(dispatchState.estimatedPickupSeconds))
+        ? Number(dispatchState.estimatedPickupSeconds)
+        : null;
+    const nextStatusMessage = shouldLockAcceptedState
+        ? (
+            isDispatchAccepted
+                ? (dispatchMessage || booking.statusMessage)
+                : (booking.statusMessage && booking.statusMessage !== PENDING_BROADCAST_MESSAGE
+                    ? booking.statusMessage
+                    : dispatchMessage || booking.statusMessage)
+        )
+        : (dispatchMessage || booking.statusMessage);
+
     return {
         ...booking,
-        status: sanitizeString(dispatchState.status) || booking.status,
-        statusMessage: sanitizeString(dispatchState.message) || booking.statusMessage,
-        assignedVehicle: sanitizeString(dispatchState.assignedVehicle) || null,
-        estimatedPickupSeconds: Number.isFinite(Number(dispatchState.estimatedPickupSeconds))
-            ? Number(dispatchState.estimatedPickupSeconds)
-            : null,
-        driver: normalizeDriver(dispatchState.driver)
+        status: shouldLockAcceptedState
+            ? 'ACCEPTED'
+            : (sanitizeString(dispatchState.status) || booking.status),
+        statusMessage: nextStatusMessage,
+        assignedVehicle: shouldLockAcceptedState
+            ? (dispatchAssignedVehicle || booking.assignedVehicle || null)
+            : (dispatchAssignedVehicle || null),
+        estimatedPickupSeconds: shouldLockAcceptedState
+            ? (dispatchEta ?? booking.estimatedPickupSeconds)
+            : dispatchEta,
+        driver: shouldLockAcceptedState
+            ? (dispatchDriver || booking.driver)
+            : dispatchDriver
     };
 };
 
@@ -1386,14 +1416,18 @@ app.post('/api/bookings', async (req, res) => {
         }
 
         const bookingPromise = (async () => {
-            const dispatchAccepted = await createDispatchBooking(req.body || {}, {
+            const taskId = sanitizeString(req.body?.taskId);
+            const dispatchAccepted = await createDispatchBooking({
+                ...(req.body || {}),
+                taskId
+            }, {
                 request_id: req.requestId
             });
 
             const booking = await createBookingSafely(validation.normalizedBooking, {
                 request_id: req.requestId
             }, {
-                taskId: dispatchAccepted.taskId,
+                taskId,
                 status: dispatchAccepted.status,
                 statusMessage: dispatchAccepted.message
             });
@@ -1408,7 +1442,11 @@ app.post('/api/bookings', async (req, res) => {
 
             return {
                 status: 202,
-                body: buildAsyncBookingAcceptedResponse(booking)
+                body: {
+                    taskId: booking.taskId,
+                    status: dispatchAccepted.status,
+                    message: dispatchAccepted.message
+                }
             };
         })();
 
@@ -1504,7 +1542,9 @@ app.get('/api/bookings/:id', async (req, res) => {
 
     let responseBooking = booking;
 
-    if (booking.taskId) {
+    const bookingStatus = String(booking.status || '').toUpperCase();
+
+    if (booking.taskId && bookingStatus !== 'ACCEPTED') {
         try {
             const dispatchState = await fetchDispatchBookingStatus(booking.taskId, {
                 request_id: req.requestId

@@ -9,7 +9,7 @@ let color1 = "linear-gradient(135deg,  rgba(238, 251, 255, 0.8), rgba(99, 247, 2
 let color2 = "linear-gradient(180deg,  rgba(157, 243, 186, 0.5), rgba(42, 168, 95, 0.6) )";
 let color3 = "linear-gradient(155deg,  rgba(238, 181, 143, 0.5), rgba(233, 187, 37, 0.6) )";
 let color4 = "linear-gradient(135deg,  rgba(255, 171, 171, 0.7), rgba(201, 26, 99, 0.8) )";
-let color_choose = "white";
+let color_choose = color1;
 let index_tt = -1;
 function add_task() {
     index_tt = -1;
@@ -190,18 +190,22 @@ function edit_task_name(index) {
     input_task_name.value = data[index].name;
     if(data[index].color == color1)
     {
+        color_choose = color1;
         document.querySelector('.color_1').classList.add("effect_block");
     }
     else if(data[index].color == color2)
     {
+        color_choose = color2;
         document.querySelector('.color_2').classList.add("effect_block");
     }
     else if(data[index].color == color3)
     {
+        color_choose = color3;
         document.querySelector('.color_3').classList.add("effect_block");
     }
     else if(data[index].color == color4)
     {
+        color_choose = color4;
         document.querySelector('.color_4').classList.add("effect_block");
     }
     localStorage.setItem("info_content_block", JSON.stringify(data));

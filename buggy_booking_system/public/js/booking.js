@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const HISTORY_LIMIT = 6;
     const HISTORY_AUTOLOAD_DELAY = 450;
     const STATUS_REDIRECT_DELAY_MS = 900;
-    const SUBMIT_REQUEST_TIMEOUT_MS = 12000;
+    const SUBMIT_REQUEST_TIMEOUT_MS = 30000;
     const LOCATION_SUGGESTION_DEBOUNCE_MS = 420;
     const LOCATION_SUGGESTION_LIMIT = 5;
     const LOCATION_SUGGESTION_MIN_QUERY_LENGTH = 2;
@@ -177,6 +177,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 message: 'Unexpected server response.'
             };
         }
+    };
+
+    const buildTaskId = () => {
+        const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const suffix = Math.random().toString(16).slice(2, 8).toUpperCase().padEnd(6, '0');
+        return `BKG-${stamp}-${suffix}`;
     };
 
     const setDateDefaults = () => {
@@ -2374,7 +2380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             if (error.name === 'AbortError') {
-                throw new Error('The booking server took too long to respond. Please check the dispatch server and try again.');
+                throw new Error('The booking request took too long to respond. Please try again.');
             }
 
             throw error;
@@ -2442,6 +2448,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 allowFallback: true
             });
             const bookingData = {
+                taskId: buildTaskId(),
                 guestName: fields.name.value.trim(),
                 phone: fields.phone.value.trim() || null,
                 passengerCount: Number.parseInt(fields.passengerCount.value, 10) || 1,
@@ -2469,12 +2476,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const result = await parseResponse(response);
+            const acceptedTaskId = bookingData.taskId;
 
-            if (!response.ok || !result.taskId) {
+            if (!response.ok) {
                 throw new Error(result.message || 'Unable to create booking.');
             }
-
-            const acceptedTaskId = result.taskId;
 
             localStorage.removeItem(CACHE_KEY);
             form.reset();
@@ -2492,9 +2498,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             openOverlay({
                 state: 'success',
-                kicker: 'Accepted',
-                title: result.status || 'PENDING_BROADCAST',
-                message: result.message || 'The booking task was accepted and is waiting for driver broadcast.',
+                kicker: 'Queued',
+                title: 'PENDING_BROADCAST',
+                message: 'Booking was created. Waiting for driver acceptance.',
                 bookingId: acceptedTaskId,
                 actionLabel: 'View status'
             });

@@ -119,12 +119,6 @@ const validateBookingPayload = (payload) => {
     };
 };
 
-const buildTaskId = () => {
-    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const suffix = Math.random().toString(16).slice(2, 8).toUpperCase().padEnd(6, '0');
-    return `BKG-${stamp}-${suffix}`;
-};
-
 const pickVehicleAssignment = (taskId) => {
     const seed = Array.from(taskId).reduce((total, character) => total + character.charCodeAt(0), 0);
     return VEHICLE_POOL[seed % VEHICLE_POOL.length];
@@ -190,7 +184,15 @@ app.post('/api/bookings', (req, res) => {
         });
     }
 
-    const taskId = buildTaskId();
+    const taskId = sanitizeString(req.body?.taskId);
+
+    if (!taskId) {
+        return res.status(400).json({
+            success: false,
+            message: 'taskId is required.'
+        });
+    }
+
     const task = {
         taskId,
         status: PENDING_BROADCAST_STATUS,

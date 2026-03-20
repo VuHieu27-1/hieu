@@ -7,7 +7,7 @@
     "logDir": "./data/logs"
   },
   "dispatch": {
-    "baseUrl": "http://localhost:4001"
+    "baseUrl": "https://scv7tjkk-8000.asse.devtunnels.ms/"
   },
   "geocoding": {
     "provider": "nominatim",
@@ -24,7 +24,7 @@
   },
   "http": {
     "locationTimeoutMs": 15000,
-    "dispatchTimeoutMs": 8000
+    "dispatchTimeoutMs": 40000
   },
   "booking": {
     "maxPendingBookings": 200,

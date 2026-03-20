@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const POLL_INTERVAL_MS = 5000;
+    const POLL_INTERVAL_MS = 3000;
     const params = new URLSearchParams(window.location.search);
     const taskId = params.get('task_id');
     const feedback = document.getElementById('status-feedback');
+    let lastAcceptedBooking = null;
+    let pollTimerId = null;
+    let isTerminalStateReached = false;
 
     const elements = {
         bookingId: document.getElementById('status-booking-id'),
@@ -101,28 +104,46 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderBooking = (booking) => {
-        elements.bookingId.textContent = booking.taskId || '-';
-        elements.label.textContent = getStatusLabel(booking);
-        elements.pickupArea.textContent = booking?.pickup?.locationName || '-';
-        elements.dropoffPoint.textContent = booking?.dropoff?.locationName || '-';
-        elements.passengers.textContent = String(booking?.passengerCount || '-');
-        elements.pickupTime.textContent = formatDateTime(booking?.scheduledTime || booking?.pickupTime || booking?.startTime);
-        elements.eta.textContent = getEtaText(booking);
-        elements.vehiclePlate.textContent = getAssignedVehicle(booking);
-        elements.driverName.textContent = booking?.driver?.name || 'Waiting';
-        elements.taskMessage.textContent = booking?.statusMessage || booking?.message || 'Waiting';
-        setSpotlightState(booking);
-        setDetailEmphasis(booking);
+        const nextBooking = isAcceptedBooking(booking)
+            ? {
+                ...(lastAcceptedBooking || {}),
+                ...booking
+            }
+            : (lastAcceptedBooking || booking);
+
+        if (isAcceptedBooking(booking)) {
+            lastAcceptedBooking = nextBooking;
+            isTerminalStateReached = true;
+        }
+
+        elements.bookingId.textContent = nextBooking.taskId || '-';
+        elements.label.textContent = getStatusLabel(nextBooking);
+        elements.pickupArea.textContent = nextBooking?.pickup?.locationName || '-';
+        elements.dropoffPoint.textContent = nextBooking?.dropoff?.locationName || '-';
+        elements.passengers.textContent = String(nextBooking?.passengerCount || '-');
+        elements.pickupTime.textContent = formatDateTime(nextBooking?.scheduledTime || nextBooking?.pickupTime || nextBooking?.startTime);
+        elements.eta.textContent = getEtaText(nextBooking);
+        elements.vehiclePlate.textContent = getAssignedVehicle(nextBooking);
+        elements.driverName.textContent = nextBooking?.driver?.name || 'Waiting';
+        elements.taskMessage.textContent = nextBooking?.statusMessage || nextBooking?.message || 'Waiting';
+        setSpotlightState(nextBooking);
+        setDetailEmphasis(nextBooking);
     };
 
     const loadStatus = async () => {
+        if (isTerminalStateReached) {
+            return;
+        }
+
         if (!taskId) {
             setFeedback('Missing task ID in the page URL.');
             return;
         }
 
         try {
-            const response = await fetch(`/api/bookings/${encodeURIComponent(taskId)}`);
+            const response = await fetch(`/api/bookings/${encodeURIComponent(taskId)}`, {
+                cache: 'no-store'
+            });
             const result = await response.json();
 
             if (!response.ok || !result.success || !result.data) {
@@ -131,11 +152,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderBooking(result.data);
             setFeedback();
+
+            if (isTerminalStateReached && pollTimerId) {
+                window.clearTimeout(pollTimerId);
+                pollTimerId = null;
+            }
         } catch (error) {
             setFeedback(error.message || 'Unable to load booking status.');
         }
     };
 
-    loadStatus();
-    window.setInterval(loadStatus, POLL_INTERVAL_MS);
+    const scheduleNextPoll = () => {
+        if (isTerminalStateReached) {
+            return;
+        }
+
+        pollTimerId = window.setTimeout(async () => {
+            await loadStatus();
+            scheduleNextPoll();
+        }, POLL_INTERVAL_MS);
+    };
+
+    loadStatus().finally(() => {
+        scheduleNextPoll();
+    });
 });

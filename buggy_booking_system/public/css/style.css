@@ -344,7 +344,9 @@ body {
 }
 
 .location-autocomplete {
-    position: relative;
+    position: static;
+    display: grid;
+    gap: 0.35rem;
     min-width: 0;
 }
 
@@ -390,10 +392,8 @@ body {
 }
 
 .location-suggestions {
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    left: 0;
-    right: 0;
+    position: relative;
+    inset: auto;
     z-index: 30;
     display: grid;
     gap: 0.2rem;
@@ -404,6 +404,11 @@ body {
     border: 1px solid var(--line-strong);
     background: var(--panel-strong);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+    margin-top: 0.15rem;
+}
+
+.location-input-row .location-suggestions {
+    grid-column: 1 / -1;
 }
 
 .location-suggestion {

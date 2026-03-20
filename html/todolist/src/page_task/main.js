@@ -17,6 +17,20 @@ setInterval(() => {
         sodem++;
     }
 }, 500);
+let data_time;
+// async function getData() {
+//   try {
+//     const response = await fetch(
+//       'https://www.timeapi.io/api/Time/current/zone?timeZone=UTC'
+//     );
+
+//     const data = await response.json();
+
+//     return new Date(data.dateTime); 
+//   } catch (error) {
+//     console.error("Error fetching:", error);
+//   }
+// }
 //===============================ADD_ITEM_TASK=============================
 const search_bar = document.querySelector("#search_bar")
 const list_task_bar = document.querySelector(".list_task_bar")
@@ -24,6 +38,7 @@ let today = new Date()
 let day = today.getDate();
 let month = today.getMonth()+1; 
 let year = today.getFullYear();
+console.log(day, month, year);
 let color_edit = "white";
 // localStorage.removeItem("data_item_work");
 // console.log(data[sub_task].subtask);
