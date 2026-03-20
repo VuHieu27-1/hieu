@@ -59,7 +59,10 @@
                     <label class="form-group">
                         <span class="form-label">Pickup Area</span>
                         <div class="location-input-row">
-                            <input type="text" id="pickup-area" name="pickup_area" class="input-field" placeholder="Lobby, Restaurant, Pool..." required>
+                            <div class="location-autocomplete">
+                                <input type="text" id="pickup-area" name="pickup_area" class="input-field" placeholder="Lobby, Restaurant, Pool..." autocomplete="off" required>
+                                <div id="pickup-suggestions" class="location-suggestions hidden" role="listbox" aria-label="Pickup address suggestions"></div>
+                            </div>
                             <button type="button" id="detect-location-button" class="secondary-btn location-btn">Use GPS</button>
                         </div>
                         <div id="location-feedback" class="location-feedback hidden"></div>
@@ -67,18 +70,24 @@
                             <div class="gps-tracker-head">
                                 <div>
                                     <strong>Pickup Map</strong>
-                                    <p>Use GPS or enter a pickup address, then drag the marker or tap the map to fine-tune the road position before booking.</p>
+                                    <p>Use GPS or enter a pickup address, then drag the map so the center pin sits on the exact pickup point, or drag the marker directly.</p>
                                 </div>
                                 <button type="button" id="stop-location-button" class="secondary-btn gps-stop-btn hidden">Stop GPS</button>
                             </div>
-                            <div id="gps-map" class="gps-map" aria-label="Current pickup location map"></div>
+                            <div class="gps-map-shell">
+                                <div id="gps-map" class="gps-map" aria-label="Current pickup location map"></div>
+                                <div class="gps-map-center-pin" aria-hidden="true"></div>
+                            </div>
                         </div>
                         <span class="error-text hidden" id="pickup-area-error">Please enter pickup area.</span>
                     </label>
 
                     <label class="form-group">
                         <span class="form-label">Drop-off Point</span>
-                        <input type="text" id="dropoff-point" name="dropoff_point" class="input-field" placeholder="Villa A12, Spa, Beach..." required>
+                        <div class="location-autocomplete">
+                            <input type="text" id="dropoff-point" name="dropoff_point" class="input-field" placeholder="Villa A12, Spa, Beach..." autocomplete="off" required>
+                            <div id="dropoff-suggestions" class="location-suggestions hidden" role="listbox" aria-label="Drop-off address suggestions"></div>
+                        </div>
                         <span class="error-text hidden" id="dropoff-point-error">Please enter drop-off point.</span>
                     </label>
                 </div>

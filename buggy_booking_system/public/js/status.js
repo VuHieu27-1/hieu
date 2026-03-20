@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         eta: document.getElementById('status-eta'),
         vehiclePlate: document.getElementById('status-vehicle-plate'),
         driverName: document.getElementById('status-driver-name'),
-        driverPhone: document.getElementById('status-driver-phone'),
         taskMessage: document.getElementById('status-task-message')
     };
 
@@ -73,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (accepted) {
             elements.phasePill.textContent = 'Driver found';
             elements.headline.textContent = `${vehicle} accepted your booking`;
-            elements.description.textContent = `${driverName} is on the way to your pickup point. You can review the ETA and driver contact details below.`;
+            elements.description.textContent = `${driverName} is on the way to your pickup point. You can review the ETA and assigned vehicle details below.`;
             elements.driverBannerVehicle.textContent = vehicle;
             elements.driverBannerCopy.textContent = `${driverName} - ETA ${etaText}`;
             return;
@@ -92,8 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         [
             elements.eta,
             elements.vehiclePlate,
-            elements.driverName,
-            elements.driverPhone
+            elements.driverName
         ].forEach((element) => {
             const card = element ? element.closest('.status-card') : null;
             if (card) {
@@ -112,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.eta.textContent = getEtaText(booking);
         elements.vehiclePlate.textContent = getAssignedVehicle(booking);
         elements.driverName.textContent = booking?.driver?.name || 'Waiting';
-        elements.driverPhone.textContent = booking?.driver?.phone || 'Waiting';
         elements.taskMessage.textContent = booking?.statusMessage || booking?.message || 'Waiting';
         setSpotlightState(booking);
         setDetailEmphasis(booking);

@@ -1,0 +1,33 @@
+{
+  "server": {
+    "port": 3000
+  },
+  "storage": {
+    "databaseFile": "./data/bookings.db",
+    "logDir": "./data/logs"
+  },
+  "dispatch": {
+    "baseUrl": "http://localhost:4001"
+  },
+  "geocoding": {
+    "provider": "nominatim",
+    "language": "vi",
+    "country": "vn",
+    "reverseGeocodeUrl": "https://nominatim.openstreetmap.org/reverse",
+    "searchGeocodeUrl": "https://nominatim.openstreetmap.org/search",
+    "mapbox": {
+      "accessToken": "",
+      "forwardGeocodeUrl": "https://api.mapbox.com/search/geocode/v6/forward",
+      "reverseGeocodeUrl": "https://api.mapbox.com/search/geocode/v6/reverse",
+      "types": "address,street,locality,neighborhood,place"
+    }
+  },
+  "http": {
+    "locationTimeoutMs": 15000,
+    "dispatchTimeoutMs": 8000
+  },
+  "booking": {
+    "maxPendingBookings": 200,
+    "idempotencyTtlMs": 600000
+  }
+}

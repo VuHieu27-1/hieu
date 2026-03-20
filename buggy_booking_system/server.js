@@ -2,41 +2,73 @@ const fs = require('fs/promises');
 const http = require('http');
 const https = require('https');
 const path = require('path');
-const { createLogger } = require('./lib/logger');
+const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
 const cors = require('cors');
+const { createLogger } = require('./lib/logger');
+const { loadConfig } = require('./config');
+
+const appConfig = loadConfig();
 
 const app = express();
-const DEFAULT_PORT = Number(process.env.PORT || 3000);
+const CONFIG_FILE = appConfig.configFile;
+const DEFAULT_PORT = appConfig.server.port;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const DATA_DIR = path.join(__dirname, 'data');
-const LOG_DIR = path.join(DATA_DIR, 'logs');
-const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
+const DATABASE_FILE = appConfig.storage.databaseFile;
+const DATA_DIR = path.dirname(DATABASE_FILE);
+const LOG_DIR = appConfig.storage.logDir;
 const PHONE_REGEX = /^(\+84|84|0)[0-9]{9,10}$/;
-const DEFAULT_DISPATCH_API_URL = 'http://localhost:4001';
-const REVERSE_GEOCODE_URL = process.env.REVERSE_GEOCODE_URL || 'https://nominatim.openstreetmap.org/reverse';
-const SEARCH_GEOCODE_URL = process.env.SEARCH_GEOCODE_URL || 'https://nominatim.openstreetmap.org/search';
-const DISPATCH_API_URL = String(process.env.DISPATCH_API_URL || DEFAULT_DISPATCH_API_URL).trim();
-const LOCATION_HTTP_TIMEOUT_MS = Number(process.env.LOCATION_HTTP_TIMEOUT_MS || 15000);
-const DISPATCH_HTTP_TIMEOUT_MS = Number(process.env.DISPATCH_HTTP_TIMEOUT_MS || 8000);
-const SERVICE_USER_AGENT = 'd-soft-buggy-booking-system/1.1';
+const RAW_DISPATCH_API_URL = appConfig.dispatch.rawBaseUrl;
+const DISPATCH_API_URL = appConfig.dispatch.baseUrl;
+const GEOCODING_PROVIDER = appConfig.geocoding.provider;
+const RAW_GEOCODING_PROVIDER = appConfig.geocoding.requestedProvider;
+const GEOCODING_LANGUAGE = appConfig.geocoding.language;
+const GEOCODING_COUNTRY = appConfig.geocoding.country;
+const REVERSE_GEOCODE_URL = appConfig.geocoding.reverseGeocodeUrl;
+const SEARCH_GEOCODE_URL = appConfig.geocoding.searchGeocodeUrl;
+const MAPBOX_ACCESS_TOKEN = appConfig.geocoding.mapbox.accessToken;
+const MAPBOX_FORWARD_GEOCODE_URL = appConfig.geocoding.mapbox.forwardGeocodeUrl;
+const MAPBOX_REVERSE_GEOCODE_URL = appConfig.geocoding.mapbox.reverseGeocodeUrl;
+const MAPBOX_TYPES = appConfig.geocoding.mapbox.types;
+const LOCATION_HTTP_TIMEOUT_MS = appConfig.http.locationTimeoutMs;
+const DISPATCH_HTTP_TIMEOUT_MS = appConfig.http.dispatchTimeoutMs;
+const MAX_PENDING_BOOKINGS = appConfig.booking.maxPendingBookings;
+const IDEMPOTENCY_TTL_MS = appConfig.booking.idempotencyTtlMs;
+const SERVICE_USER_AGENT = 'd-soft-buggy-booking-system/1.2';
+const PENDING_BROADCAST_STATUS = 'PENDING_BROADCAST';
+const PENDING_BROADCAST_MESSAGE = 'Đã phát tín hiệu đến các tài xế gần nhất, đang chờ tài xế nhận cuốc...';
 
 const logger = createLogger({
     logDir: LOG_DIR,
     serviceName: 'buggy-booking-system'
 });
 
-let bookings = [];
-let writeQueue = Promise.resolve();
-let bookingQueue = Promise.resolve();
+if (RAW_DISPATCH_API_URL !== DISPATCH_API_URL) {
+    logger.warn('Dispatch API URL was rewritten for container networking.', {
+        original_url: RAW_DISPATCH_API_URL,
+        normalized_url: DISPATCH_API_URL
+    });
+}
+
+if (RAW_GEOCODING_PROVIDER !== GEOCODING_PROVIDER) {
+    logger.warn('Geocoding provider fallback was applied.', {
+        requested_provider: RAW_GEOCODING_PROVIDER,
+        effective_provider: GEOCODING_PROVIDER
+    });
+}
+
+let db;
 let requestCounter = 0;
 let nextBookingSequence = 1;
 let pendingBookingJobs = 0;
-const MAX_PENDING_BOOKINGS = Number(process.env.MAX_PENDING_BOOKINGS || 200);
-const IDEMPOTENCY_TTL_MS = Number(process.env.IDEMPOTENCY_TTL_MS || 10 * 60 * 1000);
-const PENDING_BROADCAST_STATUS = 'PENDING_BROADCAST';
-const PENDING_BROADCAST_MESSAGE = '\u0110\u00e3 ph\u00e1t t\u00edn hi\u1ec7u \u0111\u1ebfn c\u00e1c t\u00e0i x\u1ebf g\u1ea7n nh\u1ea5t, \u0111ang ch\u1edd t\u00e0i x\u1ebf nh\u1eadn cu\u1ed1c...';
+let bookingQueue = Promise.resolve();
 const idempotencyStore = new Map();
+const locationResponseCache = new Map();
+let locationProviderBackoffUntil = 0;
+const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
+const LOCATION_PROVIDER_BACKOFF_MS = 15 * 1000;
+
+const sanitizeString = (value) => String(value || '').trim();
 
 const maskPhone = (phone) => {
     if (!phone || phone.length < 4) {
@@ -59,14 +91,132 @@ const summarizeBody = (body) => {
 
 const parseBookingSequence = (bookingId) => {
     const parts = String(bookingId || '').split('-');
-    const rawSequence = parts[parts.length - 1];
-    const sequence = Number.parseInt(rawSequence, 10);
+    const sequence = Number.parseInt(parts[parts.length - 1], 10);
     return Number.isInteger(sequence) ? sequence : 0;
 };
 
+const joinUniqueAddressParts = (parts = []) => {
+    const values = parts.map((part) => sanitizeString(part)).filter(Boolean);
+    return values.filter((part, index) => values.indexOf(part) === index).join(', ');
+};
+
+const normalizeIsoDateTime = (value) => {
+    const rawValue = sanitizeString(value);
+
+    if (!rawValue) {
+        return null;
+    }
+
+    const parsed = new Date(rawValue);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
+const normalizeDriver = (driver) => {
+    if (!driver || typeof driver !== 'object' || Array.isArray(driver)) {
+        return null;
+    }
+
+    const name = sanitizeString(driver.name);
+    const badgeId = sanitizeString(driver.badgeId || driver.badge_id);
+
+    if (!name && !badgeId) {
+        return null;
+    }
+
+    return {
+        name: name || null,
+        badgeId: badgeId || null
+    };
+};
+
+const normalizeBookingPoint = (payload) => {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return null;
+    }
+
+    const lat = Number(payload.lat);
+    const lng = Number(payload.lng);
+    const locationName = sanitizeString(payload.locationName);
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+        return null;
+    }
+
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+        return null;
+    }
+
+    if (!locationName) {
+        return null;
+    }
+
+    return {
+        lat: Number(lat.toFixed(6)),
+        lng: Number(lng.toFixed(6)),
+        locationName
+    };
+};
+
+const rowToBooking = (row) => {
+    if (!row) {
+        return null;
+    }
+
+    const driver = normalizeDriver({
+        name: row.driver_name,
+        badgeId: row.driver_badge_id
+    });
+
+    return {
+        id: row.id,
+        taskId: row.task_id || null,
+        status: row.status || PENDING_BROADCAST_STATUS,
+        statusMessage: row.status_message || PENDING_BROADCAST_MESSAGE,
+        guestName: row.guest_name,
+        phone: row.phone || null,
+        passengerCount: row.passenger_count,
+        bookingType: row.booking_type,
+        scheduledTime: row.scheduled_time || null,
+        pickup: {
+            lat: row.pickup_lat,
+            lng: row.pickup_lng,
+            locationName: row.pickup_location_name
+        },
+        dropoff: {
+            lat: row.dropoff_lat,
+            lng: row.dropoff_lng,
+            locationName: row.dropoff_location_name
+        },
+        assignedVehicle: row.assigned_vehicle || null,
+        estimatedPickupSeconds: Number.isFinite(Number(row.estimated_pickup_seconds))
+            ? Number(row.estimated_pickup_seconds)
+            : null,
+        driver,
+        startTime: row.start_time || null,
+        endTime: row.end_time || null,
+        pickupTime: row.pickup_time || null,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+    };
+};
+
+const getDatabase = () => {
+    if (!db) {
+        throw new Error('Database has not been initialized yet.');
+    }
+
+    return db;
+};
+
+const getBookingsCount = () => {
+    const row = getDatabase().prepare('SELECT COUNT(*) AS count FROM bookings').get();
+    return Number(row?.count || 0);
+};
+
 const initializeBookingSequence = () => {
-    nextBookingSequence = bookings.reduce((maxSequence, booking) => {
-        return Math.max(maxSequence, parseBookingSequence(booking.id));
+    const rows = getDatabase().prepare('SELECT id FROM bookings').all();
+    nextBookingSequence = rows.reduce((maxSequence, row) => {
+        return Math.max(maxSequence, parseBookingSequence(row.id));
     }, 0) + 1;
 };
 
@@ -85,93 +235,111 @@ const sanitizeIdempotencyKey = (value) => {
     return key || null;
 };
 
-const buildCorruptBookingsBackupPath = () => {
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return path.join(DATA_DIR, `bookings.corrupt-${stamp}.json`);
+const initializeDatabase = async () => {
+    await fs.mkdir(path.dirname(DATABASE_FILE), { recursive: true });
+
+    db = new DatabaseSync(DATABASE_FILE);
+    db.exec(`
+        PRAGMA journal_mode = WAL;
+        PRAGMA synchronous = NORMAL;
+        PRAGMA foreign_keys = ON;
+
+        CREATE TABLE IF NOT EXISTS bookings (
+            id TEXT PRIMARY KEY,
+            task_id TEXT UNIQUE,
+            status TEXT NOT NULL,
+            status_message TEXT,
+            guest_name TEXT NOT NULL,
+            phone TEXT,
+            passenger_count INTEGER NOT NULL,
+            booking_type TEXT NOT NULL,
+            scheduled_time TEXT,
+            pickup_lat REAL NOT NULL,
+            pickup_lng REAL NOT NULL,
+            pickup_location_name TEXT NOT NULL,
+            dropoff_lat REAL NOT NULL,
+            dropoff_lng REAL NOT NULL,
+            dropoff_location_name TEXT NOT NULL,
+            assigned_vehicle TEXT,
+            estimated_pickup_seconds REAL,
+            driver_name TEXT,
+            driver_phone TEXT,
+            driver_badge_id TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            pickup_time TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_task_id
+            ON bookings (task_id);
+
+        CREATE INDEX IF NOT EXISTS idx_bookings_phone_created_at
+            ON bookings (phone, created_at DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_bookings_created_at
+            ON bookings (created_at DESC);
+    `);
 };
 
-const loadBookingsFromDisk = async () => {
-    const raw = await fs.readFile(BOOKINGS_FILE, 'utf8');
-    const trimmed = raw.trim();
-
-    if (!trimmed) {
-        await fs.writeFile(BOOKINGS_FILE, '[]', 'utf8');
-        logger.warn('Bookings storage file was empty and has been reset.', {
-            bookings_file: BOOKINGS_FILE
-        });
-        return [];
-    }
-
-    try {
-        const parsed = JSON.parse(trimmed);
-
-        if (!Array.isArray(parsed)) {
-            throw new Error('Bookings storage root must be a JSON array.');
-        }
-
-        return parsed;
-    } catch (error) {
-        const backupFile = buildCorruptBookingsBackupPath();
-        await fs.copyFile(BOOKINGS_FILE, backupFile);
-        await fs.writeFile(BOOKINGS_FILE, '[]', 'utf8');
-
-        logger.warn('Bookings storage file contained invalid JSON and has been recovered.', {
-            bookings_file: BOOKINGS_FILE,
-            backup_file: backupFile,
-            error: error.message
-        });
-
-        return [];
-    }
+const insertBookingRecord = (booking) => {
+    getDatabase().prepare(`
+        INSERT INTO bookings (
+            id, task_id, status, status_message, guest_name, phone, passenger_count, booking_type, scheduled_time,
+            pickup_lat, pickup_lng, pickup_location_name,
+            dropoff_lat, dropoff_lng, dropoff_location_name,
+            assigned_vehicle, estimated_pickup_seconds,
+            driver_name, driver_phone, driver_badge_id,
+            start_time, end_time, pickup_time, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        booking.id,
+        booking.taskId,
+        booking.status,
+        booking.statusMessage,
+        booking.guestName,
+        booking.phone,
+        booking.passengerCount,
+        booking.bookingType,
+        booking.scheduledTime,
+        booking.pickup.lat,
+        booking.pickup.lng,
+        booking.pickup.locationName,
+        booking.dropoff.lat,
+        booking.dropoff.lng,
+        booking.dropoff.locationName,
+        booking.assignedVehicle || null,
+        booking.estimatedPickupSeconds,
+        booking.driver?.name || null,
+        booking.driver?.phone || null,
+        booking.driver?.badgeId || null,
+        booking.startTime,
+        booking.endTime,
+        booking.pickupTime,
+        booking.createdAt,
+        booking.updatedAt
+    );
 };
 
 const ensureStorage = async () => {
     logger.info('Initializing storage directories.', {
         data_dir: DATA_DIR,
-        log_dir: LOG_DIR
+        log_dir: LOG_DIR,
+        database_file: DATABASE_FILE
     });
 
     await fs.mkdir(DATA_DIR, { recursive: true });
     await fs.mkdir(LOG_DIR, { recursive: true });
-
-    try {
-        await fs.access(BOOKINGS_FILE);
-        logger.info('Bookings storage file found.', {
-            bookings_file: BOOKINGS_FILE
-        });
-    } catch (error) {
-        await fs.writeFile(BOOKINGS_FILE, '[]', 'utf8');
-        logger.warn('Bookings storage file was missing and has been created.', {
-            bookings_file: BOOKINGS_FILE
-        });
-    }
-
-    bookings = await loadBookingsFromDisk();
+    await initializeDatabase();
     initializeBookingSequence();
 
     logger.info('Storage initialized successfully.', {
-        bookings_loaded: bookings.length,
+        bookings_loaded: getBookingsCount(),
         latest_log_file: logger.getLatestLogPath(),
-        next_booking_sequence: nextBookingSequence
-    });
-};
-
-const persistBookings = async () => {
-    logger.debug('Persisting bookings to disk.', {
-        bookings_count: bookings.length
-    });
-
-    writeQueue = writeQueue.then(async () => {
-        const tempFile = `${BOOKINGS_FILE}.tmp`;
-        await fs.writeFile(tempFile, JSON.stringify(bookings, null, 2), 'utf8');
-        await fs.rename(tempFile, BOOKINGS_FILE);
-    });
-
-    await writeQueue;
-
-    logger.info('Bookings persisted to disk.', {
-        bookings_file: BOOKINGS_FILE,
-        bookings_count: bookings.length
+        next_booking_sequence: nextBookingSequence,
+        config_file: CONFIG_FILE,
+        database_file: DATABASE_FILE
     });
 };
 
@@ -182,44 +350,33 @@ const generateBookingId = () => {
     return `BK-${stamp}-${sequence}`;
 };
 
-const sanitizeString = (value) => String(value || '').trim();
+const createBookingRecord = (normalized) => {
+    const timestamp = new Date().toISOString();
 
-const joinUniqueAddressParts = (parts = []) => {
-    const values = parts
-        .map((part) => sanitizeString(part))
-        .filter(Boolean);
-
-    return values.filter((part, index) => values.indexOf(part) === index).join(', ');
+    return {
+        id: generateBookingId(),
+        taskId: normalized.taskId || null,
+        status: normalized.status || PENDING_BROADCAST_STATUS,
+        statusMessage: normalized.statusMessage || PENDING_BROADCAST_MESSAGE,
+        guestName: normalized.guestName,
+        phone: normalized.phone || null,
+        passengerCount: normalized.passengerCount || 1,
+        bookingType: normalized.bookingType || 'NOW',
+        scheduledTime: normalized.scheduledTime || null,
+        pickup: normalized.pickup,
+        dropoff: normalized.dropoff,
+        assignedVehicle: normalized.assignedVehicle || null,
+        estimatedPickupSeconds: Number.isFinite(Number(normalized.estimatedPickupSeconds))
+            ? Number(normalized.estimatedPickupSeconds)
+            : null,
+        driver: normalizeDriver(normalized.driver),
+        startTime: normalized.startTime,
+        endTime: normalized.endTime,
+        pickupTime: normalized.pickupTime,
+        createdAt: timestamp,
+        updatedAt: timestamp
+    };
 };
-
-const normalizeIsoDateTime = (value) => {
-    const rawValue = sanitizeString(value);
-
-    if (!rawValue) {
-        return null;
-    }
-
-    const parsed = new Date(rawValue);
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
-};
-
-const createBookingRecord = (normalized) => ({
-    id: generateBookingId(),
-    taskId: normalized.taskId || null,
-    status: normalized.status || PENDING_BROADCAST_STATUS,
-    statusMessage: normalized.statusMessage || PENDING_BROADCAST_MESSAGE,
-    guestName: normalized.guestName,
-    phone: normalized.phone || null,
-    passengerCount: normalized.passengerCount || 1,
-    bookingType: normalized.bookingType || 'NOW',
-    scheduledTime: normalized.scheduledTime || null,
-    pickup: normalized.pickup,
-    dropoff: normalized.dropoff,
-    startTime: normalized.startTime,
-    endTime: normalized.endTime,
-    pickupTime: normalized.pickupTime,
-    createdAt: new Date().toISOString()
-});
 
 const enqueueBookingTask = async (task) => {
     if (pendingBookingJobs >= MAX_PENDING_BOOKINGS) {
@@ -246,8 +403,8 @@ const createBookingSafely = async (normalizedBooking, meta = {}, overrides = {})
             ...normalizedBooking,
             ...overrides
         });
-        bookings.push(booking);
-        await persistBookings();
+
+        insertBookingRecord(booking);
 
         logger.info('Booking saved locally.', {
             request_id: meta.request_id,
@@ -284,43 +441,7 @@ const normalizeDispatchAcceptedResponse = (payload) => {
         throw new Error('Dispatch server returned an invalid acceptance response.');
     }
 
-    return {
-        taskId,
-        status,
-        message
-    };
-};
-
-const createDispatchBooking = async (payload, meta = {}) => {
-    try {
-        const response = await postJson(buildDispatchEndpoint('/api/bookings'), payload, {
-            ...meta,
-            category: 'dispatch',
-            action: 'create_booking'
-        });
-
-        let parsed;
-        try {
-            parsed = JSON.parse(response.body);
-        } catch (error) {
-            throw new Error('Dispatch server returned invalid JSON.');
-        }
-
-        return normalizeDispatchAcceptedResponse(parsed);
-    } catch (error) {
-        error.code = error.code || 'DISPATCH_UNAVAILABLE';
-        throw error;
-    }
-};
-
-const fetchDispatchBookingStatus = async (taskId, meta = {}) => {
-    const response = await getJson(buildDispatchEndpoint(`/api/bookings/${encodeURIComponent(taskId)}`), {
-        ...meta,
-        category: 'dispatch',
-        action: 'get_booking_status'
-    });
-
-    return response.body;
+    return { taskId, status, message };
 };
 
 const mergeBookingWithDispatchState = (booking, dispatchState) => {
@@ -336,21 +457,81 @@ const mergeBookingWithDispatchState = (booking, dispatchState) => {
         estimatedPickupSeconds: Number.isFinite(Number(dispatchState.estimatedPickupSeconds))
             ? Number(dispatchState.estimatedPickupSeconds)
             : null,
-        driver: dispatchState.driver && typeof dispatchState.driver === 'object'
-            ? dispatchState.driver
-            : null
+        driver: normalizeDriver(dispatchState.driver)
+    };
+};
+
+const findBookingById = (bookingId) => {
+    const row = getDatabase().prepare('SELECT * FROM bookings WHERE id = ? LIMIT 1').get(bookingId);
+    return rowToBooking(row);
+};
+
+const findBookingByLookupId = (lookupId) => {
+    const row = getDatabase().prepare(`
+        SELECT *
+        FROM bookings
+        WHERE id = ? OR task_id = ?
+        LIMIT 1
+    `).get(lookupId, lookupId);
+
+    return rowToBooking(row);
+};
+
+const getBookingHistoryByPhone = (phone, limit) => {
+    const rows = getDatabase().prepare(`
+        SELECT *
+        FROM bookings
+        WHERE phone = ?
+        ORDER BY datetime(created_at) DESC
+        LIMIT ?
+    `).all(phone, limit);
+
+    return rows.map(rowToBooking);
+};
+
+const updateBookingDispatchState = (bookingId, dispatchState) => {
+    const currentBooking = findBookingById(bookingId);
+
+    if (!currentBooking) {
+        return null;
+    }
+
+    const merged = mergeBookingWithDispatchState(currentBooking, dispatchState);
+    const updatedAt = new Date().toISOString();
+
+    getDatabase().prepare(`
+        UPDATE bookings
+        SET status = ?,
+            status_message = ?,
+            assigned_vehicle = ?,
+            estimated_pickup_seconds = ?,
+            driver_name = ?,
+            driver_phone = ?,
+            driver_badge_id = ?,
+            updated_at = ?
+        WHERE id = ?
+    `).run(
+        merged.status,
+        merged.statusMessage,
+        merged.assignedVehicle,
+        merged.estimatedPickupSeconds,
+        merged.driver?.name || null,
+        merged.driver?.phone || null,
+        merged.driver?.badgeId || null,
+        updatedAt,
+        bookingId
+    );
+
+    return {
+        ...merged,
+        updatedAt
     };
 };
 
 const getIdempotentBookingResponse = (idempotencyKey) => {
     cleanupExpiredIdempotencyKeys();
     const entry = idempotencyStore.get(idempotencyKey);
-
-    if (!entry) {
-        return null;
-    }
-
-    return entry.promise;
+    return entry ? entry.promise : null;
 };
 
 const storeIdempotentBookingResponse = (idempotencyKey, promise) => {
@@ -398,15 +579,15 @@ const postJson = (targetUrl, payload, meta = {}) => new Promise((resolve, reject
                     ...meta,
                     url: targetUrl,
                     status_code: response.statusCode,
-                    duration_ms: durationMs,
-                    response_body: responseBody
+                    duration_ms: durationMs
                 });
 
-                return resolve({
+                resolve({
                     ok: true,
                     status: response.statusCode,
                     body: responseBody
                 });
+                return;
             }
 
             const error = new Error(`HTTP ${response.statusCode}: ${responseBody || 'Empty response'}`);
@@ -418,7 +599,7 @@ const postJson = (targetUrl, payload, meta = {}) => new Promise((resolve, reject
                 response_body: responseBody,
                 error: error.message
             });
-            return reject(error);
+            reject(error);
         });
     });
 
@@ -495,7 +676,6 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
                     status_code: response.statusCode,
                     duration_ms: durationMs
                 });
-
                 resolve({
                     ok: true,
                     status: response.statusCode,
@@ -534,6 +714,70 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
     request.end();
 });
 
+const getCachedLocationJson = async (targetUrl, meta = {}) => {
+    const now = Date.now();
+    const cachedEntry = locationResponseCache.get(targetUrl);
+    if (cachedEntry && (now - cachedEntry.cachedAt) < LOCATION_CACHE_TTL_MS) {
+        return cachedEntry.response;
+    }
+
+    if (locationProviderBackoffUntil > now) {
+        if (cachedEntry) {
+            return cachedEntry.response;
+        }
+
+        const backoffError = new Error('HTTP 429: Location provider cooldown active.');
+        backoffError.code = 'LOCATION_PROVIDER_BACKOFF';
+        throw backoffError;
+    }
+
+    try {
+        const response = await getJson(targetUrl, meta);
+        locationResponseCache.set(targetUrl, {
+            cachedAt: now,
+            response
+        });
+        return response;
+    } catch (error) {
+        if (String(error.message || '').startsWith('HTTP 429')) {
+            locationProviderBackoffUntil = Date.now() + LOCATION_PROVIDER_BACKOFF_MS;
+
+            if (cachedEntry) {
+                logger.warn('Using cached location response after upstream rate limit.', {
+                    ...meta,
+                    url: targetUrl
+                });
+                return cachedEntry.response;
+            }
+        }
+
+        throw error;
+    }
+};
+
+const createDispatchBooking = async (payload, meta = {}) => {
+    try {
+        const response = await postJson(buildDispatchEndpoint('/api/bookings'), payload, {
+            ...meta,
+            category: 'dispatch',
+            action: 'create_booking'
+        });
+        return normalizeDispatchAcceptedResponse(JSON.parse(response.body));
+    } catch (error) {
+        error.code = error.code || 'DISPATCH_UNAVAILABLE';
+        throw error;
+    }
+};
+
+const fetchDispatchBookingStatus = async (taskId, meta = {}) => {
+    const response = await getJson(buildDispatchEndpoint(`/api/bookings/${encodeURIComponent(taskId)}`), {
+        ...meta,
+        category: 'dispatch',
+        action: 'get_booking_status'
+    });
+    return response.body;
+};
+
 const normalizeNominatimReverseGeocode = (payload, latitude, longitude) => {
     const address = payload && payload.address ? payload.address : {};
     const roadName = sanitizeString(address.road || address.pedestrian || address.footway || address.cycleway);
@@ -556,13 +800,7 @@ const normalizeNominatimReverseGeocode = (payload, latitude, longitude) => {
         address.country
     ]);
     const placeName = sanitizeString(
-        address.amenity
-        || address.building
-        || address.tourism
-        || address.attraction
-        || address.hotel
-        || address.resort
-        || address.shop
+        address.amenity || address.building || address.tourism || address.attraction || address.hotel || address.resort || address.shop
     );
     const displayAddress = joinUniqueAddressParts([streetLine, localityLine, adminLine]) || sanitizeString(payload.display_name || payload.name);
     const shortAddress = joinUniqueAddressParts([placeName, streetLine, localityLine]) || displayAddress;
@@ -582,34 +820,6 @@ const normalizeNominatimReverseGeocode = (payload, latitude, longitude) => {
     };
 };
 
-const normalizeBookingPoint = (payload) => {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        return null;
-    }
-
-    const lat = Number(payload.lat);
-    const lng = Number(payload.lng);
-    const locationName = sanitizeString(payload.locationName);
-
-    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-        return null;
-    }
-
-    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-        return null;
-    }
-
-    if (!locationName) {
-        return null;
-    }
-
-    return {
-        lat: Number(lat.toFixed(6)),
-        lng: Number(lng.toFixed(6)),
-        locationName
-    };
-};
-
 const reverseGeocodeWithNominatim = async (latitude, longitude, language = 'vi,en') => {
     const targetUrl = new URL(REVERSE_GEOCODE_URL);
     targetUrl.searchParams.set('format', 'jsonv2');
@@ -618,7 +828,7 @@ const reverseGeocodeWithNominatim = async (latitude, longitude, language = 'vi,e
     targetUrl.searchParams.set('zoom', '20');
     targetUrl.searchParams.set('addressdetails', '1');
 
-    const response = await getJson(targetUrl.toString(), {
+    const response = await getCachedLocationJson(targetUrl.toString(), {
         category: 'location',
         action: 'reverse_geocode',
         accept_language: language
@@ -627,26 +837,21 @@ const reverseGeocodeWithNominatim = async (latitude, longitude, language = 'vi,e
     return normalizeNominatimReverseGeocode(response.body, latitude, longitude);
 };
 
-const normalizeNominatimSearchResult = (payload) => {
-    const result = Array.isArray(payload) ? payload[0] : null;
-
+const normalizeSingleNominatimSearchResult = (result) => {
     if (!result) {
-        throw new Error('No matching address found.');
+        return null;
     }
 
     const latitude = Number.parseFloat(result.lat);
     const longitude = Number.parseFloat(result.lon);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return null;
+    }
+
     const address = result.address || {};
     const roadName = sanitizeString(address.road || address.pedestrian || address.footway || address.cycleway);
     const streetNumber = sanitizeString(address.house_number);
     const displayAddress = sanitizeString(result.display_name);
-    const shortAddress = joinUniqueAddressParts([
-        joinUniqueAddressParts([streetNumber, roadName]),
-        address.neighbourhood,
-        address.suburb,
-        address.city_district,
-        address.city
-    ]) || displayAddress;
 
     return {
         provider: 'nominatim_search',
@@ -654,30 +859,215 @@ const normalizeNominatimSearchResult = (payload) => {
         longitude: Number(longitude.toFixed(6)),
         road_name: roadName || null,
         street_number: streetNumber || null,
-        short_address: shortAddress || null,
-        display_address: displayAddress || shortAddress || null,
-        full_address: displayAddress || shortAddress || null,
+        short_address: joinUniqueAddressParts([
+            joinUniqueAddressParts([streetNumber, roadName]),
+            address.neighbourhood,
+            address.suburb,
+            address.city_district,
+            address.city
+        ]) || displayAddress,
+        display_address: displayAddress || null,
+        full_address: displayAddress || null,
         raw: result
     };
 };
 
-const searchAddressWithNominatim = async (query, language = 'vi,en') => {
+const normalizeNominatimSearchResults = (payload, limit = 5) => {
+    const normalizedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 5, 1), 8);
+    const results = Array.isArray(payload) ? payload : [];
+
+    return results
+        .slice(0, normalizedLimit)
+        .map((item) => normalizeSingleNominatimSearchResult(item))
+        .filter(Boolean);
+};
+
+const normalizeNominatimSearchResult = (payload) => {
+    const result = normalizeNominatimSearchResults(payload, 1)[0];
+
+    if (!result) {
+        throw new Error('No matching address found.');
+    }
+
+    return result;
+};
+
+const searchAddressWithNominatim = async (query, language = 'vi,en', limit = 1, options = {}) => {
+    const normalizedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 1, 1), 8);
     const targetUrl = new URL(SEARCH_GEOCODE_URL);
     targetUrl.searchParams.set('format', 'jsonv2');
     targetUrl.searchParams.set('q', query);
-    targetUrl.searchParams.set('limit', '1');
+    targetUrl.searchParams.set('limit', String(normalizedLimit));
     targetUrl.searchParams.set('addressdetails', '1');
+    if (GEOCODING_COUNTRY) {
+        targetUrl.searchParams.set('countrycodes', GEOCODING_COUNTRY);
+    }
+    if (Number.isFinite(options.proximityLat) && Number.isFinite(options.proximityLng)) {
+        targetUrl.searchParams.set('viewbox', [
+            Number(options.proximityLng) - 0.1,
+            Number(options.proximityLat) + 0.1,
+            Number(options.proximityLng) + 0.1,
+            Number(options.proximityLat) - 0.1
+        ].join(','));
+        targetUrl.searchParams.set('bounded', '0');
+    }
 
-    const response = await getJson(targetUrl.toString(), {
+    const response = await getCachedLocationJson(targetUrl.toString(), {
         category: 'location',
         action: 'forward_geocode',
         accept_language: language
     });
 
-    return normalizeNominatimSearchResult(response.body);
+    if (normalizedLimit === 1) {
+        return normalizeNominatimSearchResult(response.body);
+    }
+
+    const results = normalizeNominatimSearchResults(response.body, normalizedLimit);
+    if (results.length === 0) {
+        throw new Error('No matching address found.');
+    }
+
+    return results;
 };
 
-const reverseGeocodeCoordinates = async (latitude, longitude, language = 'vi,en') => {
+const searchAddress = async (query, language = GEOCODING_LANGUAGE, limit = 1, options = {}) => {
+    if (GEOCODING_PROVIDER === 'mapbox') {
+        return searchAddressWithMapbox(query, language, limit, options);
+    }
+
+    return searchAddressWithNominatim(query, language, limit, options);
+};
+
+const buildNormalizedAddressObject = (context = {}, properties = {}) => ({
+    neighbourhood: sanitizeString(context?.neighborhood?.name || context?.locality?.name),
+    suburb: sanitizeString(context?.district?.name || context?.place?.name),
+    city_district: sanitizeString(context?.district?.name),
+    city: sanitizeString(context?.place?.name || context?.locality?.name),
+    state: sanitizeString(context?.region?.name),
+    postcode: sanitizeString(context?.postcode?.name),
+    country: sanitizeString(context?.country?.name),
+    road: sanitizeString(context?.street?.name || context?.address?.street_name),
+    house_number: sanitizeString(context?.address?.address_number || properties?.name?.split(' ')[0])
+});
+
+const normalizeSingleMapboxFeature = (feature) => {
+    if (!feature || typeof feature !== 'object') {
+        return null;
+    }
+
+    const properties = feature.properties || {};
+    const coordinates = properties.coordinates || {};
+    const geometry = feature.geometry || {};
+    const longitude = Number.parseFloat(coordinates.longitude ?? geometry.coordinates?.[0]);
+    const latitude = Number.parseFloat(coordinates.latitude ?? geometry.coordinates?.[1]);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return null;
+    }
+
+    const context = properties.context || {};
+    const address = buildNormalizedAddressObject(context, properties);
+    const roadName = sanitizeString(address.road || properties.name);
+    const streetNumber = sanitizeString(address.house_number);
+    const fullAddress = sanitizeString(properties.full_address || joinUniqueAddressParts([properties.name, properties.place_formatted]));
+    const shortAddress = joinUniqueAddressParts([
+        sanitizeString(properties.name),
+        address.neighbourhood,
+        address.city_district,
+        address.city
+    ]) || fullAddress;
+
+    return {
+        provider: 'mapbox',
+        latitude: Number(latitude.toFixed(6)),
+        longitude: Number(longitude.toFixed(6)),
+        place_name: sanitizeString(properties.name_preferred || properties.name),
+        road_name: roadName || null,
+        street_number: streetNumber || null,
+        short_address: shortAddress || null,
+        display_address: fullAddress || null,
+        full_address: fullAddress || null,
+        address,
+        raw: feature
+    };
+};
+
+const reverseGeocodeWithMapbox = async (latitude, longitude, language = GEOCODING_LANGUAGE) => {
+    const targetUrl = new URL(MAPBOX_REVERSE_GEOCODE_URL);
+    targetUrl.searchParams.set('longitude', String(longitude));
+    targetUrl.searchParams.set('latitude', String(latitude));
+    targetUrl.searchParams.set('language', sanitizeString(language) || GEOCODING_LANGUAGE);
+    targetUrl.searchParams.set('access_token', MAPBOX_ACCESS_TOKEN);
+    targetUrl.searchParams.set('limit', '1');
+    if (GEOCODING_COUNTRY) {
+        targetUrl.searchParams.set('country', GEOCODING_COUNTRY);
+    }
+    if (MAPBOX_TYPES) {
+        targetUrl.searchParams.set('types', MAPBOX_TYPES);
+    }
+
+    const response = await getCachedLocationJson(targetUrl.toString(), {
+        category: 'location',
+        action: 'reverse_geocode_mapbox',
+        accept_language: language
+    });
+
+    const features = Array.isArray(response.body?.features) ? response.body.features : [];
+    const result = normalizeSingleMapboxFeature(features[0]);
+    if (!result) {
+        throw new Error('No matching address found.');
+    }
+    return result;
+};
+
+const searchAddressWithMapbox = async (query, language = GEOCODING_LANGUAGE, limit = 1, options = {}) => {
+    const normalizedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 1, 1), 8);
+    const targetUrl = new URL(MAPBOX_FORWARD_GEOCODE_URL);
+    targetUrl.searchParams.set('q', query);
+    targetUrl.searchParams.set('access_token', MAPBOX_ACCESS_TOKEN);
+    targetUrl.searchParams.set('limit', String(normalizedLimit));
+    targetUrl.searchParams.set('language', sanitizeString(language) || GEOCODING_LANGUAGE);
+    targetUrl.searchParams.set('autocomplete', 'true');
+    if (GEOCODING_COUNTRY) {
+        targetUrl.searchParams.set('country', GEOCODING_COUNTRY);
+    }
+    if (MAPBOX_TYPES) {
+        targetUrl.searchParams.set('types', MAPBOX_TYPES);
+    }
+    if (Number.isFinite(options.proximityLat) && Number.isFinite(options.proximityLng)) {
+        targetUrl.searchParams.set('proximity', `${Number(options.proximityLng).toFixed(6)},${Number(options.proximityLat).toFixed(6)}`);
+    }
+
+    const response = await getCachedLocationJson(targetUrl.toString(), {
+        category: 'location',
+        action: 'forward_geocode_mapbox',
+        accept_language: language
+    });
+
+    const results = (Array.isArray(response.body?.features) ? response.body.features : [])
+        .slice(0, normalizedLimit)
+        .map((feature) => normalizeSingleMapboxFeature(feature))
+        .filter(Boolean);
+
+    if (normalizedLimit === 1) {
+        if (!results[0]) {
+            throw new Error('No matching address found.');
+        }
+        return results[0];
+    }
+
+    if (!results.length) {
+        throw new Error('No matching address found.');
+    }
+
+    return results;
+};
+
+const reverseGeocodeCoordinates = async (latitude, longitude, language = GEOCODING_LANGUAGE) => {
+    if (GEOCODING_PROVIDER === 'mapbox') {
+        return reverseGeocodeWithMapbox(latitude, longitude, language);
+    }
+
     return reverseGeocodeWithNominatim(latitude, longitude, language);
 };
 
@@ -712,18 +1102,12 @@ const validateBooking = (payload) => {
         return { valid: false, message: 'Scheduled time is required for SCHEDULED bookings.' };
     }
 
-    const pickupDate = normalized.bookingType === 'SCHEDULED'
-        ? new Date(normalized.scheduledTime)
-        : new Date();
+    const pickupDate = normalized.bookingType === 'SCHEDULED' ? new Date(normalized.scheduledTime) : new Date();
     const startDate = new Date(pickupDate);
     const endDate = new Date(pickupDate.getTime() + (30 * 60 * 1000));
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || Number.isNaN(pickupDate.getTime())) {
         return { valid: false, message: 'Scheduled time is invalid.' };
-    }
-
-    if (endDate <= startDate) {
-        return { valid: false, message: 'End time must be later than start time.' };
     }
 
     if (normalized.bookingType === 'SCHEDULED' && pickupDate <= new Date()) {
@@ -789,18 +1173,9 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/', (req, res) => {
-    return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-});
-
-app.get('/booking.html', (req, res) => {
-    return res.sendFile(path.join(PUBLIC_DIR, 'booking.html'));
-});
-
-app.get('/status.html', (req, res) => {
-    return res.sendFile(path.join(PUBLIC_DIR, 'status.html'));
-});
-
+app.get('/', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+app.get('/booking.html', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'booking.html')));
+app.get('/status.html', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'status.html')));
 app.use(express.static(PUBLIC_DIR));
 
 app.get('/api/location/reverse-geocode', async (req, res) => {
@@ -817,10 +1192,7 @@ app.get('/api/location/reverse-geocode', async (req, res) => {
 
     try {
         const data = await reverseGeocodeCoordinates(Number(latitude.toFixed(6)), Number(longitude.toFixed(6)), language);
-        return res.json({
-            success: true,
-            data
-        });
+        return res.json({ success: true, data });
     } catch (error) {
         logger.error('Reverse geocode lookup failed.', {
             request_id: req.requestId,
@@ -842,6 +1214,8 @@ app.get('/api/location/reverse-geocode', async (req, res) => {
 app.get('/api/location/search', async (req, res) => {
     const query = sanitizeString(req.query.q);
     const language = sanitizeString(req.headers['accept-language']) || 'vi,en';
+    const proximityLat = Number.parseFloat(req.query.lat);
+    const proximityLng = Number.parseFloat(req.query.lng);
 
     if (query.length < 3) {
         return res.status(400).json({
@@ -851,12 +1225,23 @@ app.get('/api/location/search', async (req, res) => {
     }
 
     try {
-        const data = await searchAddressWithNominatim(query, language);
-        return res.json({
-            success: true,
-            data
+        const data = await searchAddress(query, language, 1, {
+            proximityLat,
+            proximityLng
         });
+        return res.json({ success: true, data });
     } catch (error) {
+        if (error.code === 'LOCATION_PROVIDER_BACKOFF' || String(error.message || '').startsWith('HTTP 429')) {
+            logger.warn('Address search lookup skipped because provider is rate limited.', {
+                request_id: req.requestId,
+                query
+            });
+            return res.status(503).json({
+                success: false,
+                message: 'Address lookup is temporarily busy. Please try again in a moment.'
+            });
+        }
+
         logger.error('Address search lookup failed.', {
             request_id: req.requestId,
             query,
@@ -873,6 +1258,63 @@ app.get('/api/location/search', async (req, res) => {
     }
 });
 
+app.get('/api/location/suggest', async (req, res) => {
+    const query = sanitizeString(req.query.q);
+    const language = sanitizeString(req.headers['accept-language']) || 'vi,en';
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 5, 1), 5);
+    const proximityLat = Number.parseFloat(req.query.lat);
+    const proximityLng = Number.parseFloat(req.query.lng);
+
+    if (query.length < 2) {
+        return res.status(400).json({
+            success: false,
+            message: 'Suggestion query must be at least 2 characters.'
+        });
+    }
+
+    try {
+        const data = await searchAddress(query, language, limit, {
+            proximityLat,
+            proximityLng
+        });
+        return res.json({ success: true, data: Array.isArray(data) ? data : [data] });
+    } catch (error) {
+        if (error.code === 'LOCATION_PROVIDER_BACKOFF' || String(error.message || '').startsWith('HTTP 429')) {
+            logger.warn('Address suggestion lookup skipped because provider is rate limited.', {
+                request_id: req.requestId,
+                query,
+                limit
+            });
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        if (error.message === 'No matching address found.') {
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        logger.error('Address suggestion lookup failed.', {
+            request_id: req.requestId,
+            query,
+            limit,
+            error: {
+                message: error.message,
+                stack: error.stack
+            }
+        });
+
+        return res.status(502).json({
+            success: false,
+            message: 'Unable to load address suggestions right now.'
+        });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     return res.json({
         success: true,
@@ -880,8 +1322,11 @@ app.get('/api/health', (req, res) => {
         data: {
             service: 'buggy-booking-system',
             uptime_seconds: Math.round(process.uptime()),
-            bookings_count: bookings.length,
+            bookings_count: getBookingsCount(),
+            config_file: CONFIG_FILE,
             dispatch_api_url: DISPATCH_API_URL,
+            geocoding_provider: GEOCODING_PROVIDER,
+            database_file: DATABASE_FILE,
             latest_log_file: logger.getLatestLogPath(),
             log_directory: logger.getLogDir()
         }
@@ -944,6 +1389,7 @@ app.post('/api/bookings', async (req, res) => {
             const dispatchAccepted = await createDispatchBooking(req.body || {}, {
                 request_id: req.requestId
             });
+
             const booking = await createBookingSafely(validation.normalizedBooking, {
                 request_id: req.requestId
             }, {
@@ -987,6 +1433,7 @@ app.post('/api/bookings', async (req, res) => {
             : error.code === 'DISPATCH_UNAVAILABLE'
                 ? 502
                 : 500;
+
         return res.status(statusCode).json({
             success: false,
             message: error.message
@@ -1021,14 +1468,7 @@ app.get('/api/bookings', (req, res) => {
         });
     }
 
-    const history = bookings
-        .filter((item) => item.phone === phone)
-        .sort((left, right) => {
-            const rightCreatedAt = right.createdAt || right.created_at || 0;
-            const leftCreatedAt = left.createdAt || left.created_at || 0;
-            return new Date(rightCreatedAt) - new Date(leftCreatedAt);
-        })
-        .slice(0, limit);
+    const history = getBookingHistoryByPhone(phone, limit);
 
     logger.info('Booking history lookup succeeded.', {
         request_id: req.requestId,
@@ -1048,7 +1488,7 @@ app.get('/api/bookings', (req, res) => {
 });
 
 app.get('/api/bookings/:id', async (req, res) => {
-    const booking = bookings.find((item) => item.id === req.params.id || item.taskId === req.params.id);
+    const booking = findBookingByLookupId(req.params.id);
 
     if (!booking) {
         logger.warn('Booking lookup failed. Booking not found.', {
@@ -1069,7 +1509,7 @@ app.get('/api/bookings/:id', async (req, res) => {
             const dispatchState = await fetchDispatchBookingStatus(booking.taskId, {
                 request_id: req.requestId
             });
-            responseBooking = mergeBookingWithDispatchState(booking, dispatchState);
+            responseBooking = updateBookingDispatchState(booking.id, dispatchState) || mergeBookingWithDispatchState(booking, dispatchState);
         } catch (error) {
             logger.warn('Booking lookup could not refresh dispatch state. Falling back to local data.', {
                 request_id: req.requestId,
@@ -1124,7 +1564,9 @@ const startServer = (port) => {
             booking_status_url: `http://localhost:${activePort}/status.html`,
             health_check_url: `http://localhost:${activePort}/api/health`,
             system_logs_url: `http://localhost:${activePort}/api/system/logs`,
-            dispatch_api_url: DISPATCH_API_URL
+            config_file: CONFIG_FILE,
+            dispatch_api_url: DISPATCH_API_URL,
+            database_file: DATABASE_FILE
         });
 
         if (activePort !== DEFAULT_PORT) {

@@ -1,8 +1,8 @@
 {
   "name": "buggy-booking-system",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
-  "description": "Booking web and gateway server for buggy dispatch requests",
+  "description": "Booking web and gateway server for buggy dispatch requests with SQLite storage",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,6 +14,6 @@
     "express": "^5.1.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   }
 }

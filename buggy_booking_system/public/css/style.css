@@ -343,6 +343,11 @@ body {
     gap: 0.65rem;
 }
 
+.location-autocomplete {
+    position: relative;
+    min-width: 0;
+}
+
 .location-btn {
     min-height: 48px;
     min-width: 120px;
@@ -382,6 +387,55 @@ body {
     border-color: var(--danger-line);
     background: var(--danger-bg);
     color: var(--danger-text);
+}
+
+.location-suggestions {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: grid;
+    gap: 0.2rem;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0.45rem;
+    border-radius: 18px;
+    border: 1px solid var(--line-strong);
+    background: var(--panel-strong);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+
+.location-suggestion {
+    width: 100%;
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.72rem 0.8rem;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.location-suggestion:hover,
+.location-suggestion:focus-visible,
+.location-suggestion.is-active {
+    background: rgba(255, 31, 79, 0.08);
+    outline: none;
+}
+
+.location-suggestion-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.location-suggestion-subtitle {
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
 }
 
 .gps-tracker {
@@ -427,6 +481,47 @@ body {
     border: 1px solid var(--line);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(148, 163, 184, 0.16));
+}
+
+.gps-map-shell {
+    position: relative;
+}
+
+.gps-map-center-pin {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    z-index: 500;
+}
+
+.gps-map-center-pin::before,
+.gps-map-center-pin::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+}
+
+.gps-map-center-pin::before {
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 3px solid #ff1f4f;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+}
+
+.gps-map-center-pin::after {
+    width: 4px;
+    height: 12px;
+    top: calc(50% + 11px);
+    background: linear-gradient(180deg, #ff1f4f 0%, rgba(255, 31, 79, 0.1) 100%);
+    border-radius: 999px;
 }
 
 .gps-device-marker {

@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
         dropoffPoint: document.getElementById('dropoff-point-error'),
         startTime: document.getElementById('start-time-error')
     };
+    const suggestionMenus = {
+        pickupArea: document.getElementById('pickup-suggestions'),
+        dropoffPoint: document.getElementById('dropoff-suggestions')
+    };
 
     const PHONE_REGEX = /^(\+84|84|0)[0-9]{9,10}$/;
     const CACHE_KEY = 'buggy-booking-cache-v5';
@@ -48,6 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const HISTORY_AUTOLOAD_DELAY = 450;
     const STATUS_REDIRECT_DELAY_MS = 900;
     const SUBMIT_REQUEST_TIMEOUT_MS = 12000;
+    const LOCATION_SUGGESTION_DEBOUNCE_MS = 420;
+    const LOCATION_SUGGESTION_LIMIT = 5;
+    const LOCATION_SUGGESTION_MIN_QUERY_LENGTH = 2;
+    const LOCATION_SUGGESTION_QUERY_LIMIT = 2;
     const GPS_WATCH_OPTIONS = {
         enableHighAccuracy: true,
         timeout: 10000,
@@ -96,11 +104,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let locationIsResolvingAddress = false;
     let locationIsMatchingRoad = false;
     let locationSlowUpdateTimer = null;
+    let locationProgrammaticMoveUntil = 0;
+    let locationUserIsPanningMap = false;
+    let locationManualResolveTimer = null;
+    let locationLastManualInteractionAt = 0;
     const locationRawSamples = [];
     const locationRawTrack = [];
     const locationFilteredTrack = [];
     const locationMatchedTrack = [];
     const touchedFields = new Set();
+    const selectedLocationResults = {
+        pickupArea: null,
+        dropoffPoint: null
+    };
+    const suggestionState = {
+        pickupArea: {
+            items: [],
+            activeIndex: -1,
+            requestToken: 0,
+            blurTimer: null,
+            debounceTimer: null
+        },
+        dropoffPoint: {
+            items: [],
+            activeIndex: -1,
+            requestToken: 0,
+            blurTimer: null,
+            debounceTimer: null
+        }
+    };
+    const suggestionCache = new Map();
 
     const formatDateTimeLocal = (date) => {
         const year = date.getFullYear();
@@ -303,6 +336,46 @@ document.addEventListener('DOMContentLoaded', () => {
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase();
 
+    const stripVietnameseDiacritics = (value) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+
+    const sanitizeAddressForSearch = (value) => normalizeAddressText(value)
+        .replace(/\s+,/g, ',')
+        .replace(/,+$/g, '')
+        .trim();
+
+    const buildExpandedAddressVariants = (value) => {
+        const normalized = sanitizeAddressForSearch(value);
+        if (!normalized) {
+            return [];
+        }
+
+        const variants = new Set([normalized]);
+        const expanded = normalized
+            .replace(/\bTP\.?(?=\s|$)/gi, 'Thanh pho')
+            .replace(/\bQ\.?(?=\s|$)/gi, 'Quan')
+            .replace(/\bP\.?(?=\s|$)/gi, 'Phuong')
+            .replace(/\bDg\.?(?=\s|$)/gi, 'Duong')
+            .replace(/\bHem\b/gi, 'Kiet')
+            .replace(/\bK(?=\s+\d)/gi, 'Kiet');
+        variants.add(sanitizeAddressForSearch(expanded));
+
+        const asciiVariant = sanitizeAddressForSearch(stripVietnameseDiacritics(normalized));
+        if (asciiVariant) {
+            variants.add(asciiVariant);
+        }
+
+        const expandedAscii = sanitizeAddressForSearch(stripVietnameseDiacritics(expanded));
+        if (expandedAscii) {
+            variants.add(expandedAscii);
+        }
+
+        return [...variants].filter(Boolean);
+    };
+
     const mergeAddressSegments = (...groups) => {
         const seen = new Set();
         const merged = [];
@@ -388,21 +461,21 @@ document.addEventListener('DOMContentLoaded', () => {
             candidates.push(normalizedCandidate);
         };
 
-        addCandidate(normalizedTypedValue);
-        addCandidate(buildPickupAreaSearchQuery(normalizedTypedValue));
+        buildExpandedAddressVariants(normalizedTypedValue).forEach(addCandidate);
+        buildExpandedAddressVariants(buildPickupAreaSearchQuery(normalizedTypedValue)).forEach(addCandidate);
 
         if (primaryContextSegments.length) {
-            addCandidate(mergeAddressSegments(
+            buildExpandedAddressVariants(mergeAddressSegments(
                 splitAddressSegments(normalizedTypedValue),
                 primaryContextSegments
-            ).join(', '));
+            ).join(', ')).forEach(addCandidate);
         }
 
         if (contextSegments.length) {
-            addCandidate(mergeAddressSegments(
+            buildExpandedAddressVariants(mergeAddressSegments(
                 splitAddressSegments(normalizedTypedValue),
                 contextSegments
-            ).join(', '));
+            ).join(', ')).forEach(addCandidate);
         }
 
         if (includeVietnamFallback && !/viet\s*nam|việt\s*nam/i.test(normalizedTypedValue)) {
@@ -417,15 +490,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        buildExpandedAddressVariants(normalizedTypedValue).forEach(addCandidate);
+        if (includeVietnamFallback) {
+            buildExpandedAddressVariants(`${normalizedTypedValue}, Viet Nam`).forEach(addCandidate);
+        }
         return candidates;
     };
 
-    const searchLocationByAddressCandidates = async (queries) => {
+    const searchLocationByAddressCandidates = async (queries, options = {}) => {
         let lastError = null;
 
         for (const query of queries) {
             try {
-                return await searchLocationByAddress(query);
+                return await searchLocationByAddress(query, options);
             } catch (error) {
                 lastError = error;
             }
@@ -476,6 +553,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return result.data;
     };
 
+    const getSuggestionProximityPoint = (fieldKey) => {
+        if (fieldKey === 'pickupArea') {
+            const pickupPoint = getCurrentPickupFallbackPoint();
+            if (pickupPoint) {
+                return pickupPoint;
+            }
+        }
+
+        if (selectedLocationResults.pickupArea?.latitude && selectedLocationResults.pickupArea?.longitude) {
+            return {
+                lat: Number(selectedLocationResults.pickupArea.latitude),
+                lng: Number(selectedLocationResults.pickupArea.longitude)
+            };
+        }
+
+        return getCurrentPickupFallbackPoint();
+    };
+
     const setPickupAreaValue = (value, options = {}) => {
         const { persist = true } = options;
         fields.pickupArea.value = value;
@@ -501,8 +596,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ).trim();
     };
 
-    const searchLocationByAddress = async (query) => {
-        const response = await fetch(`/api/location/search?q=${encodeURIComponent(query)}`);
+    const searchLocationByAddress = async (query, options = {}) => {
+        const normalizedQuery = sanitizeAddressForSearch(query);
+        const params = new URLSearchParams({ q: normalizedQuery });
+        const proximity = getSuggestionProximityPoint(options.fieldKey || 'pickupArea');
+        if (proximity) {
+            params.set('lat', String(proximity.lat));
+            params.set('lng', String(proximity.lng));
+        }
+        const response = await fetch(`/api/location/search?${params.toString()}`);
         const result = await parseResponse(response);
 
         if (!response.ok || !result.success || !result.data) {
@@ -510,6 +612,443 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return result.data;
+    };
+
+    const searchLocationSuggestions = async (query, limit = LOCATION_SUGGESTION_LIMIT, options = {}) => {
+        const normalizedQuery = sanitizeAddressForSearch(query);
+        const params = new URLSearchParams({
+            q: normalizedQuery,
+            limit: String(limit)
+        });
+        const proximity = getSuggestionProximityPoint(options.fieldKey || 'pickupArea');
+        if (proximity) {
+            params.set('lat', String(proximity.lat));
+            params.set('lng', String(proximity.lng));
+        }
+        const response = await fetch(`/api/location/suggest?${params.toString()}`);
+        const result = await parseResponse(response);
+
+        if (!response.ok || !result.success || !Array.isArray(result.data)) {
+            throw new Error(result.message || 'Unable to load address suggestions.');
+        }
+
+        return result.data;
+    };
+
+    const searchLocationSuggestionsByCandidates = async (queries, limit = LOCATION_SUGGESTION_LIMIT, options = {}) => {
+        const {
+            fieldKey = 'pickupArea',
+            typedValue = ''
+        } = options;
+        let lastError = null;
+        const merged = [];
+        const seen = new Set();
+
+        for (const query of queries) {
+            try {
+                const results = await searchLocationSuggestions(query, limit, {
+                    fieldKey
+                });
+                results.forEach((item) => {
+                    const key = `${Number(item.latitude).toFixed(6)},${Number(item.longitude).toFixed(6)}|${normalizeAddressSearchKey(item.display_address || item.short_address || '')}`;
+                    if (seen.has(key)) {
+                        return;
+                    }
+
+                    seen.add(key);
+                    merged.push(item);
+                });
+
+                if (merged.length >= limit) {
+                    return merged
+                        .sort((left, right) => (
+                            scoreLocationSuggestion(fieldKey, typedValue, right)
+                            - scoreLocationSuggestion(fieldKey, typedValue, left)
+                        ))
+                        .slice(0, limit);
+                }
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        if (merged.length) {
+            return merged
+                .sort((left, right) => (
+                    scoreLocationSuggestion(fieldKey, typedValue, right)
+                    - scoreLocationSuggestion(fieldKey, typedValue, left)
+                ))
+                .slice(0, limit);
+        }
+
+        if (lastError) {
+            throw lastError;
+        }
+
+        return [];
+    };
+
+    const buildSuggestionPrimaryLabel = (result) => normalizeAddressText(
+        result?.short_address
+        || result?.display_address
+        || extractFullAddress(result)
+        || ''
+    );
+
+    const buildSuggestionSecondaryLabel = (result) => {
+        const segments = splitAddressSegments(result?.display_address || extractFullAddress(result));
+        if (segments.length > 1) {
+            return normalizeAddressText(segments.slice(1).join(', '));
+        }
+
+        return normalizeAddressText(result?.display_address || '');
+    };
+
+    const createTypedLocationSuggestion = (fieldKey, typedValue) => ({
+        provider: 'typed_input',
+        latitude: null,
+        longitude: null,
+        short_address: normalizeAddressText(typedValue),
+        display_address: normalizeAddressText(typedValue),
+        full_address: normalizeAddressText(typedValue),
+        source_field: fieldKey
+    });
+
+    const clearSelectedLocationResult = (fieldKey) => {
+        selectedLocationResults[fieldKey] = null;
+    };
+
+    const hideLocationSuggestions = (fieldKey) => {
+        const menu = suggestionMenus[fieldKey];
+        const state = suggestionState[fieldKey];
+
+        state.items = [];
+        state.activeIndex = -1;
+        if (menu) {
+            menu.innerHTML = '';
+            menu.classList.add('hidden');
+        }
+    };
+
+    const setActiveSuggestionIndex = (fieldKey, nextIndex) => {
+        const state = suggestionState[fieldKey];
+        const menu = suggestionMenus[fieldKey];
+        state.activeIndex = nextIndex;
+
+        if (!menu) {
+            return;
+        }
+
+        [...menu.querySelectorAll('.location-suggestion')].forEach((button, index) => {
+            button.classList.toggle('is-active', index === nextIndex);
+        });
+    };
+
+    const renderLocationSuggestions = (fieldKey) => {
+        const menu = suggestionMenus[fieldKey];
+        const state = suggestionState[fieldKey];
+
+        if (!menu) {
+            return;
+        }
+
+        if (!state.items.length) {
+            hideLocationSuggestions(fieldKey);
+            return;
+        }
+
+        menu.innerHTML = state.items.map((item, index) => `
+            <button
+                type="button"
+                class="location-suggestion${index === state.activeIndex ? ' is-active' : ''}"
+                data-field-key="${fieldKey}"
+                data-suggestion-index="${index}"
+            >
+                <span class="location-suggestion-title">${escapeHtml(buildSuggestionPrimaryLabel(item))}</span>
+                <span class="location-suggestion-subtitle">${escapeHtml(buildSuggestionSecondaryLabel(item))}</span>
+            </button>
+        `).join('');
+        menu.classList.remove('hidden');
+    };
+
+    const getSuggestionContextPayload = (fieldKey) => {
+        if (fieldKey === 'pickupArea') {
+            return pickupAreaContext;
+        }
+
+        return selectedLocationResults.pickupArea || pickupAreaContext;
+    };
+
+    const buildSuggestionSearchQuery = (fieldKey, typedValue) => {
+        const normalizedValue = normalizeAddressText(typedValue);
+        if (!normalizedValue) {
+            return '';
+        }
+
+        if (fieldKey === 'pickupArea') {
+            return buildPickupAreaSearchQuery(normalizedValue) || normalizedValue;
+        }
+
+        return mergeAddressSegments(
+            splitAddressSegments(normalizedValue),
+            getAddressContextSegments(getSuggestionContextPayload(fieldKey))
+        ).join(', ') || normalizedValue;
+    };
+
+    const tokenizeAddressSearch = (value) => normalizeAddressSearchKey(value)
+        .split(/[^a-z0-9]+/i)
+        .filter(Boolean);
+
+    const buildLocationSuggestionCandidates = (fieldKey, typedValue) => {
+        const normalizedValue = normalizeAddressText(typedValue);
+        const contextPayload = getSuggestionContextPayload(fieldKey);
+        const candidates = [];
+        const addCandidate = (candidate) => {
+            const normalizedCandidate = normalizeAddressText(candidate);
+            if (!normalizedCandidate || candidates.includes(normalizedCandidate)) {
+                return;
+            }
+            candidates.push(normalizedCandidate);
+        };
+
+        buildExpandedAddressVariants(normalizedValue).forEach(addCandidate);
+
+        if (fieldKey === 'pickupArea') {
+            buildExpandedAddressVariants(buildPickupAreaSearchQuery(normalizedValue)).forEach(addCandidate);
+            const pickupContext = getAddressContextSegments(contextPayload).slice(-2);
+            if (pickupContext.length) {
+                buildExpandedAddressVariants(mergeAddressSegments(
+                    splitAddressSegments(normalizedValue),
+                    pickupContext
+                ).join(', ')).forEach(addCandidate);
+            }
+            return candidates.slice(0, LOCATION_SUGGESTION_QUERY_LIMIT);
+        }
+
+        const contextSegments = getAddressContextSegments(contextPayload);
+        const cityContext = contextSegments.slice(-2);
+
+        buildExpandedAddressVariants(mergeAddressSegments(
+            splitAddressSegments(normalizedValue),
+            cityContext
+        ).join(', ')).forEach(addCandidate);
+
+        buildExpandedAddressVariants(`${normalizedValue}, Da Nang`).forEach(addCandidate);
+        buildExpandedAddressVariants(`${normalizedValue}, Viet Nam`).forEach(addCandidate);
+
+        return candidates.slice(0, LOCATION_SUGGESTION_QUERY_LIMIT);
+    };
+
+    const scoreLocationSuggestion = (fieldKey, typedValue, result) => {
+        const normalizedTyped = normalizeAddressSearchKey(typedValue);
+        const typedTokens = tokenizeAddressSearch(typedValue);
+        const display = normalizeAddressSearchKey(result?.display_address || result?.short_address || '');
+        const roadName = normalizeAddressSearchKey(result?.road_name || '');
+        const contextTokens = tokenizeAddressSearch(extractFullAddress(getSuggestionContextPayload(fieldKey)));
+        let score = 0;
+
+        if (!display) {
+            return score;
+        }
+
+        if (result?.provider === 'typed_input') {
+            return 40;
+        }
+
+        if (display.startsWith(normalizedTyped)) {
+            score += 120;
+        }
+
+        if (display.includes(normalizedTyped)) {
+            score += 80;
+        }
+
+        if (roadName && normalizedTyped.includes(roadName)) {
+            score += 45;
+        }
+
+        typedTokens.forEach((token) => {
+            if (display.includes(token)) {
+                score += token.length >= 4 ? 12 : 6;
+            }
+            if (roadName.includes(token)) {
+                score += 10;
+            }
+        });
+
+        if (fieldKey === 'dropoffPoint') {
+            contextTokens.forEach((token) => {
+                if (display.includes(token)) {
+                    score += 3;
+                }
+            });
+        }
+
+        return score;
+    };
+
+    const selectLocationSuggestion = async (fieldKey, suggestion, options = {}) => {
+        if (!suggestion) {
+            return;
+        }
+
+        const { keepFocus = false } = options;
+        const input = fields[fieldKey];
+        const label = normalizeAddressText(
+            suggestion.display_address
+            || suggestion.short_address
+            || input.value
+        );
+
+        if (Number.isFinite(suggestion.latitude) && Number.isFinite(suggestion.longitude)) {
+            selectedLocationResults[fieldKey] = suggestion;
+        } else {
+            clearSelectedLocationResult(fieldKey);
+        }
+        input.value = label;
+        touchedFields.add(fieldKey);
+        hideLocationSuggestions(fieldKey);
+
+        if (fieldKey === 'pickupArea') {
+            isPickupAreaUserEdited = true;
+            shouldForceGpsPickupAutofill = false;
+            pickupAreaContext = suggestion;
+            await focusMapOnAddressResult(suggestion, {
+                feedback: true,
+                typedValue: label
+            });
+        }
+
+        updateSummary();
+        validateForm();
+        saveCache();
+
+        if (keepFocus) {
+            input.focus();
+        }
+    };
+
+    const loadLocationSuggestions = async (fieldKey, typedValue) => {
+        const menu = suggestionMenus[fieldKey];
+        const state = suggestionState[fieldKey];
+        const normalizedValue = normalizeAddressText(typedValue);
+
+        if (!menu || normalizedValue.length < LOCATION_SUGGESTION_MIN_QUERY_LENGTH) {
+            hideLocationSuggestions(fieldKey);
+            return;
+        }
+
+        const requestToken = state.requestToken + 1;
+        state.requestToken = requestToken;
+        const cacheKey = `${fieldKey}:${normalizeAddressSearchKey(normalizedValue)}`;
+        const cachedResults = suggestionCache.get(cacheKey);
+
+        if (cachedResults) {
+            state.items = cachedResults;
+            state.activeIndex = cachedResults.length ? 0 : -1;
+            renderLocationSuggestions(fieldKey);
+            return;
+        }
+
+        state.items = [createTypedLocationSuggestion(fieldKey, normalizedValue)];
+        state.activeIndex = 0;
+        renderLocationSuggestions(fieldKey);
+
+        try {
+            const results = await searchLocationSuggestionsByCandidates(
+                buildLocationSuggestionCandidates(fieldKey, buildSuggestionSearchQuery(fieldKey, normalizedValue)),
+                LOCATION_SUGGESTION_LIMIT,
+                {
+                    fieldKey,
+                    typedValue: normalizedValue
+                }
+            );
+
+            if (state.requestToken !== requestToken) {
+                return;
+            }
+
+            const mergedResults = [
+                ...results,
+                ...(results.length ? [] : [createTypedLocationSuggestion(fieldKey, normalizedValue)])
+            ];
+            suggestionCache.set(cacheKey, mergedResults);
+            state.items = mergedResults;
+            state.activeIndex = mergedResults.length ? 0 : -1;
+            renderLocationSuggestions(fieldKey);
+        } catch (error) {
+            if (state.requestToken !== requestToken) {
+                return;
+            }
+
+            const fallbackItems = [createTypedLocationSuggestion(fieldKey, normalizedValue)];
+            suggestionCache.set(cacheKey, fallbackItems);
+            state.items = fallbackItems;
+            state.activeIndex = 0;
+            renderLocationSuggestions(fieldKey);
+        }
+    };
+
+    const scheduleLocationSuggestions = (fieldKey, typedValue) => {
+        const state = suggestionState[fieldKey];
+        if (state.debounceTimer) {
+            clearTimeout(state.debounceTimer);
+        }
+
+        const normalizedValue = normalizeAddressText(typedValue);
+        if (normalizedValue.length < LOCATION_SUGGESTION_MIN_QUERY_LENGTH) {
+            hideLocationSuggestions(fieldKey);
+            return;
+        }
+
+        state.debounceTimer = window.setTimeout(() => {
+            loadLocationSuggestions(fieldKey, normalizedValue);
+        }, LOCATION_SUGGESTION_DEBOUNCE_MS);
+    };
+
+    const selectActiveLocationSuggestion = async (fieldKey) => {
+        const state = suggestionState[fieldKey];
+        const suggestion = state.items[state.activeIndex] || state.items[0];
+
+        if (!suggestion) {
+            return false;
+        }
+
+        await selectLocationSuggestion(fieldKey, suggestion);
+        return true;
+    };
+
+    const handleSuggestionMenuClick = (event) => {
+        const button = event.target.closest('.location-suggestion');
+        if (!button) {
+            return;
+        }
+
+        const fieldKey = button.dataset.fieldKey;
+        const suggestionIndex = Number.parseInt(button.dataset.suggestionIndex, 10);
+        const suggestion = suggestionState[fieldKey]?.items?.[suggestionIndex];
+
+        if (!fieldKey || !suggestion) {
+            return;
+        }
+
+        event.preventDefault();
+        selectLocationSuggestion(fieldKey, suggestion);
+    };
+
+    const clearSuggestionBlurTimer = (fieldKey) => {
+        const state = suggestionState[fieldKey];
+        if (state.blurTimer) {
+            clearTimeout(state.blurTimer);
+            state.blurTimer = null;
+        }
+    };
+
+    const scheduleSuggestionHide = (fieldKey) => {
+        clearSuggestionBlurTimer(fieldKey);
+        suggestionState[fieldKey].blurTimer = window.setTimeout(() => {
+            hideLocationSuggestions(fieldKey);
+        }, 160);
     };
 
     const shouldRefreshResolvedPickup = (point) => {
@@ -560,6 +1099,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             pickupAreaContext = place;
+            selectedLocationResults.pickupArea = {
+                ...place,
+                latitude: Number(point.lat.toFixed(6)),
+                longitude: Number(point.lng.toFixed(6))
+            };
 
             if (autofillInput) {
                 isPickupAreaUserEdited = false;
@@ -628,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const buildBookingPointPayload = async (locationName, options = {}) => {
         const {
+            selectedResult = null,
             snapshot = null,
             contextAware = false,
             contextPayload = null,
@@ -641,13 +1186,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (
-            snapshot
-            && Number.isFinite(snapshot.latitude)
-            && Number.isFinite(snapshot.longitude)
+            selectedResult
+            && Number.isFinite(selectedResult.latitude)
+            && Number.isFinite(selectedResult.longitude)
         ) {
             return {
-                lat: Number(snapshot.latitude.toFixed(6)),
-                lng: Number(snapshot.longitude.toFixed(6)),
+                lat: Number(selectedResult.latitude.toFixed(6)),
+                lng: Number(selectedResult.longitude.toFixed(6)),
                 locationName: trimmedName
             };
         }
@@ -668,6 +1213,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 locationName: trimmedName
             };
         } catch (error) {
+            if (
+                snapshot
+                && Number.isFinite(snapshot.latitude)
+                && Number.isFinite(snapshot.longitude)
+            ) {
+                return {
+                    lat: Number(snapshot.latitude.toFixed(6)),
+                    lng: Number(snapshot.longitude.toFixed(6)),
+                    locationName: trimmedName
+                };
+            }
+
             const inferredFallbackPoint = inferServiceAreaFallbackPoint(trimmedName, contextAware ? pickupAreaContext : contextPayload);
             const effectiveFallbackPoint = (
                 fallbackPoint
@@ -780,6 +1337,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatGpsHeading = (value) => Number.isFinite(value) ? `${Math.round(value)} deg` : '-';
     const formatGpsPoint = (point) => point ? `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}` : '-';
     const clampGpsValue = (value, min, max) => Math.min(Math.max(value, min), max);
+    const markProgrammaticMapMove = (durationMs = 1200) => {
+        locationProgrammaticMoveUntil = Date.now() + durationMs;
+    };
+    const isProgrammaticMapMoveActive = () => Date.now() < locationProgrammaticMoveUntil;
 
     const haversineDistanceMeters = (left, right) => {
         const toRadians = (value) => (value * Math.PI) / 180;
@@ -821,10 +1382,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const applyManualMapSelection = async (point, options = {}) => {
-        const { feedback = true } = options;
+        const {
+            feedback = true,
+            preserveMapView = false
+        } = options;
 
         if (!point) {
             return;
+        }
+
+        locationLastManualInteractionAt = Date.now();
+        locationUserIsPanningMap = false;
+
+        if (locationManualResolveTimer) {
+            clearTimeout(locationManualResolveTimer);
+            locationManualResolveTimer = null;
         }
 
         if (isLocationTrackingActive) {
@@ -848,7 +1420,8 @@ document.addEventListener('DOMContentLoaded', () => {
             locationAccuracyCircle.setRadius(6);
         }
 
-        if (locationMap) {
+        if (locationMap && !preserveMapView) {
+            markProgrammaticMapMove();
             locationMap.panTo([point.lat, point.lng], {
                 animate: true,
                 duration: 0.5
@@ -866,6 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         isPickupAreaUserEdited = false;
+        selectedLocationResults.pickupArea = null;
         await resolvePickupAreaFromPoint(point, {
             source: 'manual_map_adjustment',
             feedback,
@@ -921,6 +1495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (locationMap) {
+            markProgrammaticMapMove();
             locationMap.setView([point.lat, point.lng], 18, {
                 animate: true
             });
@@ -930,6 +1505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pickupLabel = buildResolvedPickupLabel(result) || typedPickupValue;
 
         pickupAreaContext = result;
+        selectedLocationResults.pickupArea = result;
         deviceLocationSnapshot = {
             ...(deviceLocationSnapshot || {}),
             latitude: Number(point.lat.toFixed(6)),
@@ -982,6 +1558,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (feedback) {
                 setLocationFeedback(error.message || 'Unable to find that typed address on the map.', 'warning');
+            }
+            return null;
+        }
+    };
+
+    const syncDropoffPointFromText = async (options = {}) => {
+        const { feedback = false } = options;
+        const query = fields.dropoffPoint.value.trim();
+
+        if (query.length < 4) {
+            clearSelectedLocationResult('dropoffPoint');
+            return null;
+        }
+
+        try {
+            const result = await searchLocationByAddressCandidates(
+                buildAddressSearchCandidates(query, {
+                    contextPayload: getSuggestionContextPayload('dropoffPoint')
+                })
+            );
+            selectedLocationResults.dropoffPoint = result;
+            return result;
+        } catch (error) {
+            clearSelectedLocationResult('dropoffPoint');
+            if (feedback) {
+                setLocationFeedback(error.message || 'Unable to pin the drop-off address yet.', 'warning');
             }
             return null;
         }
@@ -1047,6 +1649,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).addTo(locationMap);
 
         locationMarker.on('dragstart', () => {
+            locationLastManualInteractionAt = Date.now();
             if (isLocationTrackingActive) {
                 stopLiveLocationTracking({ clearFeedback: false });
                 setLocationFeedback('GPS tracking paused. Drag the marker to adjust the pickup point manually.', 'info');
@@ -1058,14 +1661,63 @@ document.addEventListener('DOMContentLoaded', () => {
             await applyManualMapSelection({
                 lat: markerPoint.lat,
                 lng: markerPoint.lng
+            }, {
+                preserveMapView: true
             });
         });
 
         locationMap.on('click', async (event) => {
+            locationLastManualInteractionAt = Date.now();
             await applyManualMapSelection({
                 lat: event.latlng.lat,
                 lng: event.latlng.lng
+            }, {
+                preserveMapView: true
             });
+        });
+
+        locationMap.on('movestart', () => {
+            if (isProgrammaticMapMoveActive()) {
+                return;
+            }
+
+            locationUserIsPanningMap = true;
+            locationLastManualInteractionAt = Date.now();
+
+            if (isLocationTrackingActive) {
+                stopLiveLocationTracking({ clearFeedback: false });
+                setLocationFeedback('GPS tracking paused. Move the map until the center pin sits on your exact pickup point.', 'info');
+            }
+        });
+
+        locationMap.on('move', () => {
+            if (!locationUserIsPanningMap || isProgrammaticMapMoveActive() || !locationMarker) {
+                return;
+            }
+
+            const center = locationMap.getCenter();
+            locationMarker.setLatLng(center);
+        });
+
+        locationMap.on('moveend', () => {
+            if (!locationUserIsPanningMap || isProgrammaticMapMoveActive()) {
+                return;
+            }
+
+            const center = locationMap.getCenter();
+            if (locationManualResolveTimer) {
+                clearTimeout(locationManualResolveTimer);
+            }
+
+            locationManualResolveTimer = window.setTimeout(() => {
+                applyManualMapSelection({
+                    lat: center.lat,
+                    lng: center.lng
+                }, {
+                    feedback: true,
+                    preserveMapView: true
+                });
+            }, 180);
         });
     };
 
@@ -1089,6 +1741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         locationLastCameraUpdateAt = 0;
         locationLastMatchRequestAt = 0;
         locationIsMatchingRoad = false;
+        locationUserIsPanningMap = false;
         locationRawSamples.length = 0;
         locationRawTrack.length = 0;
         locationFilteredTrack.length = 0;
@@ -1189,9 +1842,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if ((Date.now() - locationLastManualInteractionAt) < 4500) {
+            return;
+        }
+
         const now = Date.now();
         if (!locationLastCameraUpdateAt) {
             locationLastCameraUpdateAt = now;
+            markProgrammaticMapMove(900);
             locationMap.setView([point.lat, point.lng], 18, { animate: false });
             return;
         }
@@ -1201,6 +1859,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         locationLastCameraUpdateAt = now;
+        markProgrammaticMapMove(1200);
         locationMap.panTo([point.lat, point.lng], {
             animate: true,
             duration: 0.9
@@ -1407,8 +2066,14 @@ document.addEventListener('DOMContentLoaded', () => {
             locationSlowUpdateTimer = null;
         }
 
+        if (locationManualResolveTimer) {
+            clearTimeout(locationManualResolveTimer);
+            locationManualResolveTimer = null;
+        }
+
         isLocationTrackingActive = false;
         locationTargetPoint = null;
+        locationUserIsPanningMap = false;
         isResolvingLocation = false;
         detectLocationButton.disabled = false;
         detectLocationButton.textContent = 'Use GPS';
@@ -1452,6 +2117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetLiveGpsState();
         isPickupAreaUserEdited = false;
         shouldForceGpsPickupAutofill = true;
+        selectedLocationResults.pickupArea = null;
         gpsTrackerPanel.classList.remove('hidden');
         locationMatchedMarker.setOpacity(0);
         isLocationTrackingActive = true;
@@ -1758,14 +2424,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isLocationTrackingActive && fields.pickupArea.value.trim().length >= 4) {
                 await syncPickupAreaToMap({ feedback: false });
             }
+            if (!selectedLocationResults.dropoffPoint && fields.dropoffPoint.value.trim().length >= 4) {
+                await syncDropoffPointFromText();
+            }
 
             const pickup = await buildBookingPointPayload(fields.pickupArea.value, {
+                selectedResult: selectedLocationResults.pickupArea,
                 snapshot: deviceLocationSnapshot,
                 contextAware: true,
                 fallbackPoint: getCurrentPickupFallbackPoint(),
                 allowFallback: true
             });
             const dropoff = await buildBookingPointPayload(fields.dropoffPoint.value, {
+                selectedResult: selectedLocationResults.dropoffPoint,
                 contextPayload: pickupAreaContext,
                 fallbackPoint: getCurrentPickupFallbackPoint() || inferServiceAreaFallbackPoint(fields.pickupArea.value, pickupAreaContext),
                 allowFallback: true
@@ -1808,6 +2479,10 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem(CACHE_KEY);
             form.reset();
             deviceLocationSnapshot = null;
+            clearSelectedLocationResult('pickupArea');
+            clearSelectedLocationResult('dropoffPoint');
+            hideLocationSuggestions('pickupArea');
+            hideLocationSuggestions('dropoffPoint');
             loadCache();
             fields.passengerCount.value = '1';
             fields.pickupTimeMode.value = 'now';
@@ -1863,6 +2538,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 isPickupAreaUserEdited = true;
                 shouldForceGpsPickupAutofill = false;
             }
+            if (fieldKey === 'pickupArea' || fieldKey === 'dropoffPoint') {
+                clearSelectedLocationResult(fieldKey);
+                scheduleLocationSuggestions(fieldKey, input.value);
+            }
             updateSummary();
             validateForm();
             saveCache();
@@ -1874,6 +2553,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 isPickupAreaUserEdited = true;
                 shouldForceGpsPickupAutofill = false;
             }
+            if (fieldKey === 'pickupArea' || fieldKey === 'dropoffPoint') {
+                clearSelectedLocationResult(fieldKey);
+            }
             updateSummary();
             validateForm();
             saveCache();
@@ -1881,6 +2563,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fields.pickupArea.addEventListener('keydown', async (event) => {
+        const pickupSuggestionState = suggestionState.pickupArea;
+        if (pickupSuggestionState.items.length) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const delta = event.key === 'ArrowDown' ? 1 : -1;
+                const nextIndex = pickupSuggestionState.activeIndex < 0
+                    ? 0
+                    : (pickupSuggestionState.activeIndex + delta + pickupSuggestionState.items.length) % pickupSuggestionState.items.length;
+                setActiveSuggestionIndex('pickupArea', nextIndex);
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (await selectActiveLocationSuggestion('pickupArea')) {
+                    return;
+                }
+            }
+
+            if (event.key === 'Escape') {
+                hideLocationSuggestions('pickupArea');
+                return;
+            }
+        }
+
         if (event.key !== 'Enter') {
             return;
         }
@@ -1893,12 +2600,82 @@ document.addEventListener('DOMContentLoaded', () => {
         await syncPickupAreaToMap();
     });
 
+    fields.dropoffPoint.addEventListener('keydown', async (event) => {
+        const dropoffSuggestionState = suggestionState.dropoffPoint;
+        if (dropoffSuggestionState.items.length) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const delta = event.key === 'ArrowDown' ? 1 : -1;
+                const nextIndex = dropoffSuggestionState.activeIndex < 0
+                    ? 0
+                    : (dropoffSuggestionState.activeIndex + delta + dropoffSuggestionState.items.length) % dropoffSuggestionState.items.length;
+                setActiveSuggestionIndex('dropoffPoint', nextIndex);
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (await selectActiveLocationSuggestion('dropoffPoint')) {
+                    return;
+                }
+            }
+
+            if (event.key === 'Escape') {
+                hideLocationSuggestions('dropoffPoint');
+                return;
+            }
+        }
+
+        if (event.key !== 'Enter') {
+            return;
+        }
+
+        event.preventDefault();
+        touchedFields.add('dropoffPoint');
+        updateSummary();
+        validateForm();
+        saveCache();
+        await syncDropoffPointFromText();
+    });
+
     fields.pickupArea.addEventListener('blur', async () => {
+        scheduleSuggestionHide('pickupArea');
         touchedFields.add('pickupArea');
         updateSummary();
         validateForm();
         saveCache();
         await syncPickupAreaToMap();
+    });
+
+    fields.pickupArea.addEventListener('focus', () => {
+        clearSuggestionBlurTimer('pickupArea');
+        if (suggestionState.pickupArea.items.length) {
+            renderLocationSuggestions('pickupArea');
+            return;
+        }
+        if (fields.pickupArea.value.trim().length >= LOCATION_SUGGESTION_MIN_QUERY_LENGTH) {
+            scheduleLocationSuggestions('pickupArea', fields.pickupArea.value);
+        }
+    });
+
+    fields.dropoffPoint.addEventListener('blur', async () => {
+        scheduleSuggestionHide('dropoffPoint');
+        touchedFields.add('dropoffPoint');
+        updateSummary();
+        validateForm();
+        saveCache();
+        await syncDropoffPointFromText();
+    });
+
+    fields.dropoffPoint.addEventListener('focus', () => {
+        clearSuggestionBlurTimer('dropoffPoint');
+        if (suggestionState.dropoffPoint.items.length) {
+            renderLocationSuggestions('dropoffPoint');
+            return;
+        }
+        if (fields.dropoffPoint.value.trim().length >= LOCATION_SUGGESTION_MIN_QUERY_LENGTH) {
+            scheduleLocationSuggestions('dropoffPoint', fields.dropoffPoint.value);
+        }
     });
 
     fields.pickupTimeMode.addEventListener('change', () => {
@@ -1918,6 +2695,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     historyPhoneInput.addEventListener('input', scheduleHistoryLookup);
+    suggestionMenus.pickupArea?.addEventListener('mousedown', () => {
+        clearSuggestionBlurTimer('pickupArea');
+    });
+    suggestionMenus.pickupArea?.addEventListener('click', handleSuggestionMenuClick);
+    suggestionMenus.dropoffPoint?.addEventListener('mousedown', () => {
+        clearSuggestionBlurTimer('dropoffPoint');
+    });
+    suggestionMenus.dropoffPoint?.addEventListener('click', handleSuggestionMenuClick);
 
     window.addEventListener('pagehide', () => {
         stopLiveLocationTracking({ clearFeedback: false });

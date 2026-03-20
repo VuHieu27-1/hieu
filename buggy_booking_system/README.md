@@ -2,6 +2,12 @@
 
 Booking web app and gateway server for buggy dispatch requests.
 
+Runtime requirement: Node.js 24+.
+
+Detailed code walkthrough:
+
+- `USER_MANUAL.md`: detailed explanation of the main flow, key functions, important variables, GPS logic, backend routes, and deployment configuration
+
 This project now focuses on one clear flow:
 
 1. Customer opens the booking page.
@@ -11,34 +17,28 @@ This project now focuses on one clear flow:
 5. The booking page receives a `taskId` with status `PENDING_BROADCAST`.
 6. The status page polls the booking server until a driver accepts the task.
 
-The external dispatch API is mocked by the separate project in:
-
-`C:\Users\OS\Desktop\hieu\Python_BE\mock_dispatch_server`
-
 ## Project Scope
 
 This repository includes only the pieces needed for the booking experience:
 
 - booking page
 - booking status page
-- local JSON storage
+- local SQLite storage
 - GPS-assisted pickup selection
 - server-side geocoding proxy
 - dispatch API forwarding
 - Docker support for the booking gateway
 
-Removed from the current scope:
-
-- ThingsBoard integration
-- QR generator workflow
-- extra demo pages that do not support booking
-
 ## Structure
 
 ```text
 buggy_booking_system/
+|-- config/
+|   |-- app.config.example.json
+|   |-- app.config.json
+|   `-- index.js
 |-- data/
-|   |-- bookings.json
+|   |-- bookings.db
 |   `-- logs/
 |-- lib/
 |   `-- logger.js
@@ -54,65 +54,62 @@ buggy_booking_system/
 |   |-- booking.html
 |   |-- index.html
 |   `-- status.html
-|-- .env.example
 |-- docker-compose.yml
 |-- Dockerfile
 |-- package.json
 `-- server.js
 ```
 
-## Environment
+## Configuration
 
-Create `.env` from `.env.example`.
+Main runtime configuration lives in:
+
+[app.config.json](/c:/Users/OS/Desktop/hieu/Python_BE/buggy_booking_system/config/app.config.json)
+
+Use [app.config.example.json](/c:/Users/OS/Desktop/hieu/Python_BE/buggy_booking_system/config/app.config.example.json) as a template when needed.
 
 Example:
 
-```env
-PORT=3000
-DISPATCH_API_URL=http://localhost:4001
-REVERSE_GEOCODE_URL=https://nominatim.openstreetmap.org/reverse
-SEARCH_GEOCODE_URL=https://nominatim.openstreetmap.org/search
-LOCATION_HTTP_TIMEOUT_MS=15000
-DISPATCH_HTTP_TIMEOUT_MS=8000
-MAX_PENDING_BOOKINGS=200
-IDEMPOTENCY_TTL_MS=600000
+```json
+{
+  "server": {
+    "port": 3000
+  },
+  "storage": {
+    "databaseFile": "./data/bookings.db",
+    "logDir": "./data/logs"
+  },
+  "dispatch": {
+    "baseUrl": "http://localhost:4001"
+  }
+}
 ```
 
 Key variables:
 
-- `PORT`: port for this booking server
-- `DISPATCH_API_URL`: external dispatch server base URL
-- `REVERSE_GEOCODE_URL`: reverse geocoding endpoint
-- `SEARCH_GEOCODE_URL`: forward geocoding endpoint
+- `server.port`: port for this booking server
+- `storage.databaseFile`: SQLite file used for long-term booking storage
+- `storage.logDir`: directory for runtime logs
+- `dispatch.baseUrl`: dispatch server base URL used by the booking gateway
+- `geocoding.reverseGeocodeUrl`: reverse geocoding endpoint
+- `geocoding.searchGeocodeUrl`: forward geocoding endpoint
+- `http.locationTimeoutMs`: geocode request timeout
+- `http.dispatchTimeoutMs`: dispatch request timeout
 
 ## Run Locally
 
-### 1. Choose a dispatch server
+### 1. Set the dispatch server URL
 
-Option A: use the local mock server
-
-In a separate terminal:
-
-```bash
-cd c:\Users\OS\Desktop\hieu\Python_BE\mock_dispatch_server
-npm install
-npm start
-```
-
-Expected URL:
-
-```text
-http://localhost:4001
-```
-
-Option B: use a real dispatch server
-
-Set `DISPATCH_API_URL` in `.env` to the real base URL.
+Edit `dispatch.baseUrl` in [app.config.json](/c:/Users/OS/Desktop/hieu/Python_BE/buggy_booking_system/config/app.config.json) to the server that should receive booking requests.
 
 Example:
 
-```env
-DISPATCH_API_URL=https://your-real-dispatch-server.example.com
+```json
+{
+  "dispatch": {
+    "baseUrl": "https://your-real-dispatch-server.example.com"
+  }
+}
 ```
 
 ### 2. Start this booking server
@@ -132,30 +129,23 @@ Main URLs:
 
 ## Docker
 
-This Docker setup can run in two modes:
-
-- `mock` mode: run the bundled `mock_dispatch_server`
-- `external` mode: point to any real dispatch server URL through `DISPATCH_API_URL`
-
 ### Run with Docker Compose
 
-1. Create `.env` from `.env.example`.
-2. To use an external real server, set:
-
-```env
-DISPATCH_API_URL=https://your-real-dispatch-server.example.com
-```
-
-3. Start with the local mock server:
-
-```bash
-docker compose --profile mock up --build
-```
-
-4. Or start only the booking server and connect it to an external dispatch URL:
+1. Update [app.config.json](/c:/Users/OS/Desktop/hieu/Python_BE/buggy_booking_system/config/app.config.json).
+2. Start the booking server:
 
 ```bash
 docker compose up --build
+```
+
+If the dispatch server runs on your host machine while the booking app runs in Docker, set:
+
+```json
+{
+  "dispatch": {
+    "baseUrl": "http://host.docker.internal:4001"
+  }
+}
 ```
 
 Stop it:
@@ -252,5 +242,6 @@ npm run check
 
 - GPS features require `https` or `localhost`.
 - Browser geolocation only provides coordinates; address text comes from reverse geocoding.
-- The booking server keeps local history in `data/bookings.json`.
+- The booking server keeps local history in `data/bookings.db`.
+- To switch booking requests to another server, change only `dispatch.baseUrl` in `config/app.config.json` and restart the app.
 - Logs are written to `data/logs/`.
