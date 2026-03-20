@@ -13,7 +13,6 @@ const VEHICLE_POOL = [
         assignedVehicle: 'buggy01',
         driver: {
             name: 'Tran Van Minh',
-            phone: '0901112233',
             badgeId: 'DRV-001'
         }
     },
@@ -21,7 +20,6 @@ const VEHICLE_POOL = [
         assignedVehicle: 'buggy02',
         driver: {
             name: 'Le Quoc Bao',
-            phone: '0902223344',
             badgeId: 'DRV-002'
         }
     },
@@ -29,7 +27,6 @@ const VEHICLE_POOL = [
         assignedVehicle: 'buggy03',
         driver: {
             name: 'Nguyen Thanh Son',
-            phone: '0903334455',
             badgeId: 'DRV-003'
         }
     }
