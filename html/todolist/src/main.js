@@ -3,7 +3,8 @@ const content_block_all = document.querySelector('.content_all');
 const block_end = document.querySelector('#block_fisrt');
 const input_task_name = document.querySelector('#input_task_name');
 const add_tasks = document.querySelector('#add_tasks');
-// localStorage.removeItem("data_item_work");
+// localStorage.removeItem("info_content_block");
+// localStorage.clear();
 var data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
 let color1 = "linear-gradient(135deg,  rgba(238, 251, 255, 0.8), rgba(99, 247, 239, 0.9) )";
 let color2 = "linear-gradient(180deg,  rgba(157, 243, 186, 0.5), rgba(42, 168, 95, 0.6) )";
@@ -27,10 +28,24 @@ function edit_add_task_name() {
     over_load.classList.toggle('diplay_block_add_task');
 }
 ///////////////////////////////XU-LY-JSON//////////////////////////////////////////////////////
+let filter_complete_task = document.querySelector('.filter_complete');
+let filter_incomplete_task = document.querySelector('.filter_incomplete');
+if(localStorage.getItem("status_filter") == "complete")
+{
+    filter_complete();
+}else if(localStorage.getItem("status_filter") == "incomplete")
+{
+    filter_incomplete();
+}else
+{
+    renderBlocks();
+}
 function renderBlocks() {
+    filter_complete_task.classList.remove("filter_priority_status");
+    filter_incomplete_task.classList.remove("filter_priority_status");
     let blocksHtml = `
         <div class="block_content block_content_task content_all" id="block_fisrt">
-            <i class="material-icons"  tabindex="1">apps</i>
+            <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
             <p>All Tasks</p>
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
@@ -44,8 +59,8 @@ function renderBlocks() {
         console.log(`${task.name}: ${task.status_success_tasks}`);
         blocksHtml += `
             <div class="block_content content_all" style="background:${task.color};">
-                <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_work">assignment</i></a>
-                <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_success">done_outline</i></a>
+                <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_work_${index}">assignment</i></a>
+                <a href="./page_task/index.html?id=${index}"><i class="material-icons status_icon_success" id="status_icon_success_${index}">done_outline</i></a>
                 <p title="${task.name}">${task.name}</p>
                 <div class="size_point">
                     <i class="material-icons" title="Edit task" onclick="edit_task_name(${index})">edit</i>
@@ -55,8 +70,10 @@ function renderBlocks() {
         `;
     });
     content_block.innerHTML = blocksHtml;
+    change_status_tasks();
+    localStorage.setItem("status_filter", "alltask");
 }
-renderBlocks();
+// renderBlocks();
 function select_color_1(){
     document.querySelector('.color_1').classList.toggle("effect_block");
     document.querySelector('.color_2').classList.remove("effect_block");
@@ -165,22 +182,26 @@ function delete_block_task(index) {
 //////////////////////////////////////ACTION_PAGE_TASK///////////////////////////////////////////////
 setInterval(() => {
     change_status_tasks();
-},10);
+},300);
 function change_status_tasks()
 {
     data = localStorage.getItem("info_content_block") ? JSON.parse(localStorage.getItem("info_content_block")) : [];
-    let status_icon_work = document.querySelectorAll('#status_icon_work');
-    let status_icon_success = document.querySelectorAll('#status_icon_success');
-    data.forEach((task,index) => {
-    if(task.status_success_tasks == true)
-    {
-        status_icon_work[index].classList.add('add_status_icon_work');
-        status_icon_success[index].classList.add('add_status_icon_success');
-    }else
-    {
-        status_icon_work[index].classList.remove('add_status_icon_work');
-        status_icon_success[index].classList.remove('add_status_icon_success');
-    }
+    data.forEach((task, index) => {
+        let status_icon_work = document.querySelector(`#status_icon_work_${index}`);
+        let status_icon_success = document.querySelector(`#status_icon_success_${index}`);
+
+        if(status_icon_work && status_icon_success)
+        {
+            if(task.status_success_tasks == true)
+            {
+                status_icon_work.classList.add('add_status_icon_work');
+                status_icon_success.classList.add('add_status_icon_success');
+            }else
+            {
+                status_icon_work.classList.remove('add_status_icon_work');
+                status_icon_success.classList.remove('add_status_icon_success');
+            }
+        }
     });
 }
 ///===============================EDIT_TASK_NAME=============================
@@ -210,3 +231,77 @@ function edit_task_name(index) {
     }
     localStorage.setItem("info_content_block", JSON.stringify(data));
 }
+//==================================FILTER_TASK================================//////
+function filter_complete()
+{
+    filter_complete_task.classList.add("filter_priority_status");
+    filter_incomplete_task.classList.remove("filter_priority_status");
+    let blocksHtml = `
+        <div class="block_content block_content_task content_all" id="block_fisrt">
+            <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
+            <p >All Tasks</p>
+            <p class="number_of_task"><i class="material-icons size_point">none</i></p>
+        </div>
+    `;
+    blocksHtml += `
+        <div class="block_content block_content_task">
+            <i class="material-icons" onclick="add_task()"  tabindex="2">add</i>
+        </div>
+    `;
+    data.forEach((task, index) => {
+        if(task.status_success_tasks == true)
+        {
+            blocksHtml += `
+            <div class="block_content content_all" style="background:${task.color};">
+            <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_work_${index}">assignment</i></a>
+            <a href="./page_task/index.html?id=${index}"><i class="material-icons status_icon_success" id="status_icon_success_${index}">done_outline</i></a>
+            <p title="${task.name}">${task.name}</p>
+            <div class="size_point">
+            <i class="material-icons" title="Edit task" onclick="edit_task_name(${index})">edit</i>
+            <i class="material-icons" title="Delete task" onclick="delete_block_task(${index})">delete</i>
+            </div>
+            </div>
+            `;
+        }
+        });
+    content_block.innerHTML = blocksHtml;
+    change_status_tasks();
+    localStorage.setItem("status_filter", "complete");
+}
+function filter_incomplete()
+{
+    filter_incomplete_task.classList.add("filter_priority_status");
+    filter_complete_task.classList.remove("filter_priority_status");
+    let blocksHtml = `
+        <div class="block_content block_content_task content_all" id="block_fisrt">
+            <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
+            <p >All Tasks</p>
+            <p class="number_of_task"><i class="material-icons size_point">none</i></p>
+        </div>
+    `;
+    blocksHtml += `
+        <div class="block_content block_content_task">
+            <i class="material-icons" onclick="add_task()"  tabindex="2">add</i>
+        </div>
+    `;
+    data.forEach((task, index) => {
+        if(task.status_success_tasks == false)
+        {
+            blocksHtml += `
+            <div class="block_content content_all" style="background:${task.color};">
+            <a href="./page_task/index.html?id=${index}"><i class="material-icons" id="status_icon_work_${index}">assignment</i></a>
+            <a href="./page_task/index.html?id=${index}"><i class="material-icons status_icon_success" id="status_icon_success_${index}">done_outline</i></a>
+            <p title="${task.name}">${task.name}</p>
+            <div class="size_point">
+            <i class="material-icons" title="Edit task" onclick="edit_task_name(${index})">edit</i>
+            <i class="material-icons" title="Delete task" onclick="delete_block_task(${index})">delete</i>
+            </div>
+            </div>
+            `;
+        }
+        });
+    content_block.innerHTML = blocksHtml;
+    change_status_tasks();
+    localStorage.setItem("status_filter", "incomplete");
+}
+

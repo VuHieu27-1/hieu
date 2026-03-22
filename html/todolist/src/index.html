@@ -14,9 +14,13 @@
         </div>
         <div id="content_page">
             <h1 class="text_center">My List</h1>
+            <div class="filter_task">
+                <button onclick="filter_complete()" class="filter_complete">Filter complete</button>
+                <button onclick="filter_incomplete()" class="filter_incomplete">Filter incomplete</button>
+            </div>
             <div id="content_block">
              <div class="block_content block_content_task content_all" id="block_fisrt">
-                 <i class="material-icons"  tabindex="1">apps</i>
+                 <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
                  <p>All Tasks</p>
                <p class="number_of_task"><i class="material-icons size_point">none</i></p>
              </div>

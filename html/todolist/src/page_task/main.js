@@ -131,6 +131,7 @@ function add_item_task(){
         })
         localStorage.setItem("info_content_block", JSON.stringify(data));
         load_data();
+        scroll_bar_task();
         search_bar.value = "";
     }else if(index_tt != -1 && search_bar.value !== "")
     {
@@ -153,22 +154,28 @@ search_bar.addEventListener("keydown", function(event) {
 let check_open_setting = false;
 function open_setting(event){   
     console.log(`check_open_setting1: ${check_open_setting}`);
+    off_open_setting();
     const icon_setting_item = event.parentElement.querySelector(".icon_edit_item");
     if(icon_setting_item)
     {
         icon_setting_item.classList.toggle("open_icon_edit_item");
-        check_open_setting = true;
+            check_open_setting = true;
     }
 }
-// function off_open_setting(event){
-//     console.log(`check_open_setting2: ${check_open_setting}`);
-//     let icon_setting_item = event.parentElement.querySelector(".icon_edit_item");
-//     if(check_open_setting == false)
-//     {
-//         icon_setting_item.classList.remove("open_icon_edit_item");
-//     }
-//     check_open_setting = false;
-// }
+
+function off_open_setting() {
+    console.log(`check_open_setting2: ${check_open_setting}`);
+    
+    let icon_setting_items = document.querySelectorAll(".icon_edit_item");
+
+    if (!check_open_setting) {
+        icon_setting_items.forEach(item => {
+            item.classList.remove("open_icon_edit_item");
+        });
+    }
+
+    check_open_setting = false;
+}
 let action_delete = false;
 let action_edit = false;
 function delete_item_task(index)
@@ -303,4 +310,11 @@ function filter_incomplete()
 list_task_bar.innerHTML = block_text_item;
 localStorage.setItem("info_content_block", JSON.stringify(data));
 }
-///////////////////=====================================================/////////////////////////////
+///////////////////=======================SCROLL_TASK=======================/////////////////////////////
+function scroll_bar_task()
+{
+    window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: 'smooth'
+    });
+}
