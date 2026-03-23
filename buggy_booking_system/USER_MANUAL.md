@@ -1613,4 +1613,4 @@ cd c:\Users\OS\Desktop\hieu\Python_BE\buggy_booking_system
 node -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync('./data/bookings.db'); console.log(db.prepare('SELECT COUNT(*) AS count FROM bookings').get()); console.log(db.prepare('SELECT id, task_id, guest_name, status, created_at FROM bookings ORDER BY datetime(created_at) DESC LIMIT 10').all());"
 
 Code general QR: 
-python C:\Users\admin\Desktop\DESKTOP_HIEU\hieu\tools\generate_booking_qr.py " https://488b-113-176-99-209.ngrok-free.app" -o C:\Users\admin\Desktop\DESKTOP_HIEU\hieu\buggy_booking_system\public\img\booking-qr.png 
+python C:\Users\admin\Desktop\DESKTOP_HIEU\hieu\tools\generate_booking_qr.py "  https://1449-113-160-226-231.ngrok-free.app" -o C:\Users\admin\Desktop\DESKTOP_HIEU\hieu\buggy_booking_system\public\img\booking-qr.png 

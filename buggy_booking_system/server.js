@@ -62,6 +62,7 @@ let pendingBookingJobs = 0;
 let bookingQueue = Promise.resolve();
 const idempotencyStore = new Map();
 const locationResponseCache = new Map();
+const activeDispatchStatusRequests = new Map();
 let locationProviderBackoffUntil = 0;
 const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
 const LOCATION_PROVIDER_BACKOFF_MS = 15 * 1000;
@@ -69,6 +70,54 @@ const LOCATION_PROVIDER_BACKOFF_MS = 15 * 1000;
 const sanitizeString = (value) => String(value || '').trim();
 
 const hasRequestTimeout = (value) => Number.isInteger(value) && value > 0;
+
+const registerActiveDispatchStatusRequest = (taskId, request) => {
+    if (!taskId || !request) {
+        return;
+    }
+
+    const activeRequests = activeDispatchStatusRequests.get(taskId) || new Set();
+    activeRequests.add(request);
+    activeDispatchStatusRequests.set(taskId, activeRequests);
+};
+
+const unregisterActiveDispatchStatusRequest = (taskId, request) => {
+    if (!taskId || !request) {
+        return;
+    }
+
+    const activeRequests = activeDispatchStatusRequests.get(taskId);
+    if (!activeRequests) {
+        return;
+    }
+
+    activeRequests.delete(request);
+
+    if (activeRequests.size === 0) {
+        activeDispatchStatusRequests.delete(taskId);
+    }
+};
+
+const abortActiveDispatchStatusRequests = (taskId) => {
+    if (!taskId) {
+        return 0;
+    }
+
+    const activeRequests = activeDispatchStatusRequests.get(taskId);
+    if (!activeRequests || activeRequests.size === 0) {
+        return 0;
+    }
+
+    let abortedCount = 0;
+
+    for (const request of activeRequests) {
+        abortedCount += 1;
+        request.destroy(new Error('Dispatch status refresh was superseded by a local accepted update.'));
+    }
+
+    activeDispatchStatusRequests.delete(taskId);
+    return abortedCount;
+};
 
 const maskPhone = (phone) => {
     if (!phone || phone.length < 4) {
@@ -440,6 +489,32 @@ const normalizeDispatchAcceptedResponse = (payload, fallbackTaskId = null) => {
     return { taskId, status, message };
 };
 
+const normalizeDispatchStatusPayload = (payload) => {
+    const taskId = sanitizeString(payload?.taskId);
+    const status = sanitizeString(payload?.status);
+    const message = payload?.message === null || payload?.message === undefined
+        ? null
+        : (sanitizeString(payload?.message) || null);
+    const assignedVehicle = sanitizeString(payload?.assignedVehicle);
+    const estimatedPickupSeconds = Number.isFinite(Number(payload?.estimatedPickupSeconds))
+        ? Number(payload.estimatedPickupSeconds)
+        : null;
+    const driver = normalizeDriver(payload?.driver);
+
+    if (!taskId || !status) {
+        return null;
+    }
+
+    return {
+        taskId,
+        status,
+        message,
+        assignedVehicle: assignedVehicle || null,
+        estimatedPickupSeconds,
+        driver
+    };
+};
+
 const isAcceptedDispatchState = (payload) => {
     const status = String(payload?.status || '').toUpperCase();
     return status === 'ACCEPTED' || Boolean(sanitizeString(payload?.assignedVehicle));
@@ -495,18 +570,6 @@ const findBookingByLookupId = (lookupId) => {
     return rowToBooking(row);
 };
 
-const getBookingHistoryByPhone = (phone, limit) => {
-    const rows = getDatabase().prepare(`
-        SELECT *
-        FROM bookings
-        WHERE phone = ?
-        ORDER BY datetime(created_at) DESC
-        LIMIT ?
-    `).all(phone, limit);
-
-    return rows.map(rowToBooking);
-};
-
 const updateBookingDispatchState = (bookingId, dispatchState) => {
     const currentBooking = findBookingById(bookingId);
 
@@ -544,6 +607,16 @@ const updateBookingDispatchState = (bookingId, dispatchState) => {
         ...merged,
         updatedAt
     };
+};
+
+const updateBookingDispatchStateByTaskId = (taskId, dispatchState) => {
+    const booking = findBookingByLookupId(taskId);
+
+    if (!booking) {
+        return null;
+    }
+
+    return updateBookingDispatchState(booking.id, dispatchState);
 };
 
 const getIdempotentBookingResponse = (idempotencyKey) => {
@@ -647,6 +720,7 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
     const parsedUrl = new URL(targetUrl);
     const transport = parsedUrl.protocol === 'https:' ? https : http;
     const startedAt = Date.now();
+    let finished = false;
 
     logger.debug('Outgoing HTTP request started.', {
         ...meta,
@@ -666,12 +740,21 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
         }
     }, (response) => {
         let responseBody = '';
+        const finalize = () => {
+            if (finished) {
+                return;
+            }
+
+            finished = true;
+            unregisterActiveDispatchStatusRequest(meta.task_id, request);
+        };
 
         response.on('data', (chunk) => {
             responseBody += chunk;
         });
 
         response.on('end', () => {
+            finalize();
             const durationMs = Date.now() - startedAt;
 
             if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -715,13 +798,20 @@ const getJson = (targetUrl, meta = {}) => new Promise((resolve, reject) => {
         });
     });
 
-    if (hasRequestTimeout(LOCATION_HTTP_TIMEOUT_MS)) {
-        request.setTimeout(LOCATION_HTTP_TIMEOUT_MS, () => {
-            request.destroy(new Error(`Request timed out after ${LOCATION_HTTP_TIMEOUT_MS}ms.`));
+    registerActiveDispatchStatusRequest(meta.task_id, request);
+
+    if (hasRequestTimeout(DISPATCH_HTTP_TIMEOUT_MS)) {
+        request.setTimeout(DISPATCH_HTTP_TIMEOUT_MS, () => {
+            request.destroy(new Error(`Dispatch request timed out after ${DISPATCH_HTTP_TIMEOUT_MS}ms.`));
         });
     }
 
     request.on('error', (error) => {
+        if (!finished) {
+            finished = true;
+            unregisterActiveDispatchStatusRequest(meta.task_id, request);
+        }
+
         logger.error('Outgoing HTTP request raised a network error.', {
             ...meta,
             url: targetUrl,
@@ -795,7 +885,8 @@ const fetchDispatchBookingStatus = async (taskId, meta = {}) => {
     const response = await getJson(buildDispatchEndpoint(`/api/bookings/${encodeURIComponent(taskId)}`), {
         ...meta,
         category: 'dispatch',
-        action: 'get_booking_status'
+        action: 'get_booking_status',
+        task_id: taskId
     });
     return response.body;
 };
@@ -1153,11 +1244,6 @@ const validateBooking = (payload) => {
     };
 };
 
-const readLatestLogLines = async (limit = 200) => {
-    const content = await fs.readFile(logger.getLatestLogPath(), 'utf8');
-    return content.split('\n').filter(Boolean).slice(-limit).reverse();
-};
-
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
@@ -1169,14 +1255,29 @@ app.use((req, res, next) => {
     const clientIp = Array.isArray(forwardedFor)
         ? forwardedFor[0]
         : (forwardedFor || req.socket.remoteAddress || req.ip || 'unknown');
+    const userAgent = sanitizeString(req.headers['user-agent']);
+    const origin = sanitizeString(req.headers.origin);
+    const referer = sanitizeString(req.headers.referer);
+    const contentType = sanitizeString(req.headers['content-type']);
 
     req.requestId = requestId;
+    req.requestMeta = {
+        clientIp,
+        userAgent: userAgent || null,
+        origin: origin || null,
+        referer: referer || null,
+        contentType: contentType || null
+    };
 
     logger.info('HTTP request started.', {
         request_id: requestId,
         method: req.method,
         url: req.originalUrl,
         client_ip: clientIp,
+        user_agent: userAgent || null,
+        origin: origin || null,
+        referer: referer || null,
+        content_type: contentType || null,
         query: req.query,
         body: summarizeBody(req.body)
     });
@@ -1345,34 +1446,10 @@ app.get('/api/health', (req, res) => {
             service: 'buggy-booking-system',
             uptime_seconds: Math.round(process.uptime()),
             bookings_count: getBookingsCount(),
-            config_file: CONFIG_FILE,
             dispatch_api_url: DISPATCH_API_URL,
-            geocoding_provider: GEOCODING_PROVIDER,
-            database_file: DATABASE_FILE,
-            latest_log_file: logger.getLatestLogPath(),
-            log_directory: logger.getLogDir()
+            geocoding_provider: GEOCODING_PROVIDER
         }
     });
-});
-
-app.get('/api/system/logs', async (req, res) => {
-    try {
-        const lines = await readLatestLogLines(200);
-        return res.json({
-            success: true,
-            data: {
-                count: lines.length,
-                latest_log_file: logger.getLatestLogPath(),
-                entries: lines
-            }
-        });
-    } catch (error) {
-        logger.error('Failed to read system logs.', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Unable to read system logs.'
-        });
-    }
 });
 
 app.post('/api/bookings', async (req, res) => {
@@ -1471,52 +1548,6 @@ app.post('/api/bookings', async (req, res) => {
     }
 });
 
-app.get('/api/bookings', (req, res) => {
-    const phone = sanitizeString(req.query.phone);
-    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 10, 1), 20);
-
-    if (!phone) {
-        logger.warn('Booking history lookup failed. Phone is required.', {
-            request_id: req.requestId
-        });
-
-        return res.status(400).json({
-            success: false,
-            message: 'Phone number is required to load booking history.'
-        });
-    }
-
-    if (!PHONE_REGEX.test(phone)) {
-        logger.warn('Booking history lookup failed. Phone format is invalid.', {
-            request_id: req.requestId,
-            phone: maskPhone(phone)
-        });
-
-        return res.status(400).json({
-            success: false,
-            message: 'Phone number format is invalid.'
-        });
-    }
-
-    const history = getBookingHistoryByPhone(phone, limit);
-
-    logger.info('Booking history lookup succeeded.', {
-        request_id: req.requestId,
-        phone: maskPhone(phone),
-        results: history.length,
-        limit
-    });
-
-    return res.json({
-        success: true,
-        data: {
-            phone,
-            count: history.length,
-            bookings: history
-        }
-    });
-});
-
 app.get('/api/bookings/:id', async (req, res) => {
     const booking = findBookingByLookupId(req.params.id);
 
@@ -1541,15 +1572,46 @@ app.get('/api/bookings/:id', async (req, res) => {
             const dispatchState = await fetchDispatchBookingStatus(booking.taskId, {
                 request_id: req.requestId
             });
+            logger.info('Dispatch booking status synchronized.', {
+                request_id: req.requestId,
+                booking_lookup_id: req.params.id,
+                booking_id: booking.id,
+                task_id: booking.taskId,
+                dispatch_status: sanitizeString(dispatchState?.status) || null,
+                assigned_vehicle: sanitizeString(dispatchState?.assignedVehicle) || null
+            });
             responseBooking = updateBookingDispatchState(booking.id, dispatchState) || mergeBookingWithDispatchState(booking, dispatchState);
         } catch (error) {
-            logger.warn('Booking lookup could not refresh dispatch state. Falling back to local data.', {
+            const latestBooking = findBookingById(booking.id);
+
+            if (isAcceptedDispatchState(latestBooking)) {
+                logger.warn('Dispatch verification failed, but local booking is already accepted. Returning local accepted state.', {
+                    request_id: req.requestId,
+                    booking_lookup_id: req.params.id,
+                    booking_id: booking.id,
+                    task_id: booking.taskId,
+                    error: error.message
+                });
+
+                responseBooking = latestBooking;
+            } else {
+            logger.error('Booking lookup failed because dispatch state could not be verified.', {
                 request_id: req.requestId,
                 booking_lookup_id: req.params.id,
                 booking_id: booking.id,
                 task_id: booking.taskId,
                 error: error.message
             });
+
+                return res.status(502).json({
+                    success: false,
+                    message: 'Unable to verify booking status from dispatch server.',
+                    data: {
+                        taskId: booking.taskId,
+                        status: null
+                    }
+                });
+            }
         }
     }
 
@@ -1566,6 +1628,53 @@ app.get('/api/bookings/:id', async (req, res) => {
     });
 });
 
+app.post('/', (req, res, next) => {
+    const dispatchState = normalizeDispatchStatusPayload(req.body);
+
+    if (!dispatchState) {
+        return next();
+    }
+
+    const updatedBooking = updateBookingDispatchStateByTaskId(dispatchState.taskId, dispatchState);
+
+    if (!updatedBooking) {
+        logger.warn('Dispatch status callback ignored because booking was not found.', {
+            request_id: req.requestId,
+            task_id: dispatchState.taskId,
+            dispatch_status: dispatchState.status
+        });
+
+        return res.status(404).json({
+            success: false,
+            message: 'Booking not found for dispatch status update.'
+        });
+    }
+
+    const abortedRequestCount = isAcceptedDispatchState(updatedBooking)
+        ? abortActiveDispatchStatusRequests(updatedBooking.taskId)
+        : 0;
+
+    logger.info('Dispatch status callback applied.', {
+        request_id: req.requestId,
+        booking_id: updatedBooking.id,
+        task_id: updatedBooking.taskId,
+        dispatch_status: updatedBooking.status,
+        assigned_vehicle: updatedBooking.assignedVehicle || null,
+        aborted_dispatch_refreshes: abortedRequestCount
+    });
+
+    return res.json({
+        success: true,
+        data: {
+            taskId: updatedBooking.taskId,
+            status: updatedBooking.status,
+            assignedVehicle: updatedBooking.assignedVehicle,
+            estimatedPickupSeconds: updatedBooking.estimatedPickupSeconds,
+            message: updatedBooking.statusMessage
+        }
+    });
+});
+
 app.use((req, res) => {
     if (req.path.startsWith('/api/')) {
         logger.warn('Unknown API endpoint requested.', {
@@ -1576,6 +1685,25 @@ app.use((req, res) => {
         return res.status(404).json({
             success: false,
             message: 'API endpoint not found.'
+        });
+    }
+
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+        logger.warn('Unsupported non-API request method.', {
+            request_id: req.requestId,
+            method: req.method,
+            path: req.path,
+            client_ip: req.requestMeta?.clientIp || null,
+            user_agent: req.requestMeta?.userAgent || null,
+            origin: req.requestMeta?.origin || null,
+            referer: req.requestMeta?.referer || null,
+            content_type: req.requestMeta?.contentType || null,
+            body: summarizeBody(req.body)
+        });
+
+        return res.status(405).json({
+            success: false,
+            message: 'Method not allowed.'
         });
     }
 
@@ -1595,8 +1723,6 @@ const startServer = (port) => {
             booking_page_url: `http://localhost:${activePort}/booking.html`,
             booking_status_url: `http://localhost:${activePort}/status.html`,
             health_check_url: `http://localhost:${activePort}/api/health`,
-            system_logs_url: `http://localhost:${activePort}/api/system/logs`,
-            config_file: CONFIG_FILE,
             dispatch_api_url: DISPATCH_API_URL,
             database_file: DATABASE_FILE
         });
