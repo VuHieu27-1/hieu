@@ -122,7 +122,7 @@ if(data[sub_task].status_filter_incomplete == true && data[sub_task].status_filt
 }
 function add_item_task(){
     console.log()
-    if(search_bar.value !== "" && index_tt == -1)
+    if(search_bar.value !== "" && index_tt == -1 && search_bar.value.length < 80)
     {
         data[sub_task].subtask.push({
             content: search_bar.value,
@@ -133,7 +133,7 @@ function add_item_task(){
         load_data();
         scroll_bar_task();
         search_bar.value = "";
-    }else if(index_tt != -1 && search_bar.value !== "")
+    }else if(index_tt != -1 && search_bar.value !== "" && search_bar.value.length < 80)
     {
        data[sub_task].subtask[index_tt].content = search_bar.value;
        data[sub_task].subtask[index_tt].color = "white";
@@ -142,6 +142,9 @@ function add_item_task(){
        load_data();
        search_bar.value = "";
        action_edit = false;
+    }else if(search_bar.value.length >= 80)
+    {
+        alert("Task name is too long. Please enter a shorter name.");
     }else{
         alert("Please enter the works information.");
     }
