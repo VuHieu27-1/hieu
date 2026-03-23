@@ -69,6 +69,10 @@ body{
     display: flex;
     justify-content: center;
 }
+.filter_task button:hover{
+    transform: translateY(-5px);
+    transition: 0.3s;
+}
 .filter_task button{
     cursor: pointer;    
     border: #ffffff;
@@ -79,6 +83,7 @@ body{
     font-family: var(--fontchuchung);
     font-size: 20px;
     font-weight: 600;
+    transition: 0.3s;
 } 
 /* ===============================================Main-Content================================================= */
 #content_page{
@@ -93,7 +98,15 @@ body{
     gap: 20px;
     width: min(1500px, 90%);
     height: 100%;
-}              
+}    
+.hover_block_content{
+    cursor: pointer;
+    transition: 0.3s;
+}          
+.hover_block_content:hover{
+    transform: translateY(-5px);
+    transition: 0.3s;
+}
 .block_content{
     text-align: center;
     width: min(200px, 100%);
@@ -156,7 +169,6 @@ body{
     transition: 0.3s;
 }
 .content_all p{
-    cursor: default;
     overflow: hidden;
     transform: translateY(40px);
     height: 33px;
@@ -367,6 +379,11 @@ body{
     color: var(--color_main);
     position: fixed;
 }
+
+.background_color_add_task{
+    background-color: rgb(255, 255, 255) !important;
+}
+
 #buttom_add i{
     background-color: black;
     color: white;
@@ -415,6 +432,13 @@ body{
     }
     #buttom_add input{
         height: 50px;
+    }
+    .buttom_on_top
+    {
+        position: fixed;
+        top: 50px;
+        right: 20px;
+        z-index: 100;
     }
 }
 .filter_priority{
@@ -618,4 +642,29 @@ body{
     div.size_point i{
         font-size: 24px !important;
     }
+}
+
+.buttom_on_top
+{
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+}
+.buttom_on_top i
+{
+    background: white;
+    color: var(--color_main);
+    border-radius: 50px;
+    padding: 15px;
+    font-size: 30px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.buttom_on_top:hover i{
+    transform: translateY(-4px) scale(1.05);
+}
+.buttom_on_top:active i
+{
+    transform: scale(0.95);
 }

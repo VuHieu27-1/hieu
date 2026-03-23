@@ -318,3 +318,28 @@ function scroll_bar_task()
         behavior: 'smooth'
     });
 }
+///==================================================SEARCH_TASK===============================//////////////////////////////////////////////////////
+let check_color_search_bar = false;
+function add_background_search()
+{
+    let focus_search_bar = document.querySelector('#buttom_add');
+    focus_search_bar.classList.add("background_color_add_task");
+    check_color_search_bar = true;
+}
+function remove_background_search()
+{
+    if(check_color_search_bar == false)
+    {
+        let focus_search_bar = document.querySelector('#buttom_add');
+        focus_search_bar.classList.remove("background_color_add_task");
+    }
+    check_color_search_bar = false;
+}
+///========================================SCROLL_TOP===============================//////////////////////////////////////////////////////
+function scroll_to_top()
+{
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}

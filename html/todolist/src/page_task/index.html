@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <title></title>
 </head>
-<body onclick="off_open_setting()">
+<body onclick="off_open_setting(); remove_background_search();">
     <div id="home_page">
         <div id="menu">
             <a href="../index.html"><p>H<img src="../../asset/img/logo_page.jpg" alt="" class="logo_page" title="HOME">ME</p></a>
@@ -30,10 +30,13 @@
         </div>
         <div id="content_search_bar" tabindex="4">
             <div id="buttom_add">               
-                <input type="text" id="search_bar">
+                <input type="text" onclick="add_background_search()" id="search_bar">
                 <i class="material-icons" onclick="add_item_task()">add</i>
             </div>
         </div>
+    </div>
+    <div class="buttom_on_top" onclick="scroll_to_top()">
+        <i class="material-icons" onclick="scroll_to_top()">arrow_upward</i>
     </div>
     <script src="main.js"></script>
 </body>

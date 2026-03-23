@@ -44,8 +44,8 @@ function renderBlocks() {
     filter_complete_task.classList.remove("filter_priority_status");
     filter_incomplete_task.classList.remove("filter_priority_status");
     let blocksHtml = `
-        <div class="block_content block_content_task content_all" id="block_fisrt">
-            <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
+        <div class="block_content block_content_task content_all hover_block_content" onclick="renderBlocks()" id="block_fisrt">
+            <i class="material-icons" tabindex="1">apps</i>
             <p>All Tasks</p>
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
@@ -237,8 +237,8 @@ function filter_complete()
     filter_complete_task.classList.add("filter_priority_status");
     filter_incomplete_task.classList.remove("filter_priority_status");
     let blocksHtml = `
-        <div class="block_content block_content_task content_all" id="block_fisrt">
-            <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
+        <div class="block_content block_content_task content_all hover_block_content" onclick="renderBlocks()" id="block_fisrt">
+            <i class="material-icons"  tabindex="1">apps</i>
             <p >All Tasks</p>
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
@@ -273,8 +273,8 @@ function filter_incomplete()
     filter_incomplete_task.classList.add("filter_priority_status");
     filter_complete_task.classList.remove("filter_priority_status");
     let blocksHtml = `
-        <div class="block_content block_content_task content_all" id="block_fisrt">
-            <i class="material-icons" onclick="renderBlocks()" tabindex="1">apps</i>
+        <div class="block_content block_content_task content_all hover_block_content" onclick="renderBlocks()" id="block_fisrt">
+            <i class="material-icons"  tabindex="1">apps</i>
             <p >All Tasks</p>
             <p class="number_of_task"><i class="material-icons size_point">none</i></p>
         </div>
@@ -304,4 +304,4 @@ function filter_incomplete()
     change_status_tasks();
     localStorage.setItem("status_filter", "incomplete");
 }
-
+//==================================SEARCH_TASK================================//////
